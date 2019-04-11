@@ -207,17 +207,17 @@ class UnoDisplay extends JPanel implements MouseListener {
             if (canPlay(drawnCard)) {
                 if (drawnCard instanceof WildCard) {
                     ((WildCard) drawnCard).setColor(bestColor);
-                    if (drawnCard.isSkip()) {
-                        stateTimer = System.currentTimeMillis()+1000;
-                        int cardsDrawn = drawnCard.cardDraws();
-                        for (int i = 0; i < cardsDrawn; i++) {
-                            playerHand.add(drawCard());
-                        }
+                }
+                if (drawnCard.isSkip()) {
+                    int cardsDrawn = drawnCard.cardDraws();
+                    for (int i = 0; i < cardsDrawn; i++) {
+                        playerHand.add(drawCard());
                     }
+                    stateTimer = System.currentTimeMillis()+1000;
                 } else {
+                    playCard(drawnCard);
                     state = STATE_PLAYER_MOVE;
                 }
-                playCard(drawnCard);
             } else {
                 computerHand.add(drawnCard);
                 state = STATE_PLAYER_MOVE;
