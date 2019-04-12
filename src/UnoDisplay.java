@@ -144,6 +144,7 @@ class UnoDisplay extends JPanel implements MouseListener {
     }
 
     /*
+     * Play a wild card if the player is about to win
      * Play a numeric card with the same color
      * Play any card with the same color
      * Play a matching card with the best possible color
@@ -190,6 +191,10 @@ class UnoDisplay extends JPanel implements MouseListener {
                             break;
                         }
                     }
+                } else if (playerHand.size() == 1 || playerHand.size() == 2 && random.nextBoolean()) {
+                    ((WildCard) card).setColor(bestColor);
+                    matchColor = c;
+                    break;
                 }
             }
         }
@@ -268,7 +273,7 @@ class UnoDisplay extends JPanel implements MouseListener {
 
         int dy = (height-CARD_HEIGHT)/2+2;
         drawPile = new Point((width-2*CARD_WIDTH)/2-5, dy);
-        for (int i = 0; i < deck.size()*4/107; i++) {
+        for (int i = 0; i < 4; i++) {
             paintCard(g, drawPile);
             drawPile.x += 1;
             drawPile.y -= 1;
@@ -455,7 +460,7 @@ class UnoDisplay extends JPanel implements MouseListener {
 
         // Darken card if it can't be played
         if (card != topOfDeck && (state == STATE_COMPUTER_MOVE || !canPlay(card))) {
-            g.setColor(new Color(0.0f, 0.0f, 0.0f, 0.2f));
+            g.setColor(new Color(0.0f, 0.0f, 0.0f, 0.15f));
             g.fillRoundRect(x, y, CARD_WIDTH, CARD_HEIGHT, CARD_ARC, CARD_ARC);
         }
 
