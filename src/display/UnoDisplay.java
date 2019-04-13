@@ -20,9 +20,13 @@ import java.util.Collections;
 import java.util.Random;
 
 public class UnoDisplay extends JPanel implements MouseListener {
+    private static final long FPS = 200;
+    private static final long REFRESH_DELAY = 1000/FPS;
+
+    public static final Random random = new Random();
+
     public static int width;
     public static int height;
-    public static Random random = new Random();
 
     private static ArrayList<UnoCard> deck;
     private static ArrayList<UnoCard> discard;
@@ -35,6 +39,7 @@ public class UnoDisplay extends JPanel implements MouseListener {
     private static boolean isInitialized = false;
 
     private static boolean isPlayerTurn;
+    private static boolean isGameStarted;
     private static long gameOverTimer;
 
     private static Point drawPileLocation;
@@ -43,8 +48,16 @@ public class UnoDisplay extends JPanel implements MouseListener {
     private static ArrayDeque<Event> eventQueue;
     private static Event currentEvent;
 
+    /*
+     * Ideas:
+     * - Maybe replace the play/keep menu with an end turn button after drawing?
+     * - Online play (server/client opponent)
+     * - Possibly allow computer vs computer play by making board side and card visibility configurable?
+     */
+
     UnoDisplay() {
         addMouseListener(this);
+        setBackground(Color.WHITE);
     }
 
     private void setup() {
@@ -62,7 +75,11 @@ public class UnoDisplay extends JPanel implements MouseListener {
                             updateWHD(false);
                             playerManager.update(time);
                             opponentManager.update(time);
-                            topOfDeck.update(topOfDeckLocation.x, topOfDeckLocation.y, true, time);
+
+                            if (topOfDeck != null) {
+                                topOfDeck.update(topOfDeckLocation.x, topOfDeckLocation.y, true, time);
+                            }
+
                             if (currentEvent != null && currentEvent.isDone()) {
                                 currentEvent = null;
                             }
@@ -76,7 +93,7 @@ public class UnoDisplay extends JPanel implements MouseListener {
 
                         repaint();
                     }
-                    Thread.sleep(16);
+                    Thread.sleep(REFRESH_DELAY);
                 }
             } catch (InterruptedException ignored) {}
         }).start();
@@ -102,26 +119,23 @@ public class UnoDisplay extends JPanel implements MouseListener {
         opponentManager = new ComputerManager();
         playerManager = new PlayerManager();
         for (int i = 0; i < 7; i++) {
-            opponentManager.addCard(drawCard());
-            playerManager.addCard(drawCard());
+            pushEvent(new DrawEvent(opponentManager, drawCard()));
+            pushEvent(new DrawEvent(playerManager, drawCard()));
         }
         topOfDeck = null;
         for (int i = deck.size()-1; ; i--) {
             if (deck.get(i).isNumeric()) {
-                topOfDeck = deck.remove(i);
-                topOfDeck.setPosition(drawPileLocation.x, drawPileLocation.y);
-                topOfDeck.setFlipped(false);
+                UnoCard card = deck.remove(i);
+                card.setPosition(drawPileLocation.x, drawPileLocation.y);
+                card.setFlipped(false);
+                pushEvent(new FlipOverCardEvent(card));
                 break;
             }
         }
         gameOverTimer = 0;
-        if (opponentManager.claimsStart()) {
-            isPlayerTurn = false;
-            opponentManager.startTurn();
-        } else {
-            isPlayerTurn = true;
-            playerManager.startTurn();
-        }
+        isPlayerTurn = !opponentManager.claimsStart();
+        isGameStarted = false;
+        pushEvent(new StartGameEvent());
     }
 
     public static void playCard(UnoCard card) {
@@ -218,6 +232,26 @@ public class UnoDisplay extends JPanel implements MouseListener {
         return !eventQueue.isEmpty();
     }
 
+    public static void startGame() {
+        if (isGameStarted) {
+            throw new IllegalStateException("error: game already started");
+        }
+        isGameStarted = true;
+        if (isPlayerTurn) {
+            playerManager.startTurn();
+        } else {
+            opponentManager.startTurn();
+        }
+    }
+
+    public static void flipOverCard(UnoCard card) {
+        if (topOfDeck == null) {
+            topOfDeck = card;
+        } else {
+            throw new IllegalStateException("error: card already flipped over");
+        }
+    }
+
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -240,19 +274,13 @@ public class UnoDisplay extends JPanel implements MouseListener {
     }
 
     private synchronized void displayUno(Graphics2D g) {
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
+        setHints(g);
         if (!isInitialized) {
             setup();
             isInitialized = true;
         }
 
         updateWHD(true);
-
-        g.setBackground(Color.WHITE);
-        g.clearRect(0, 0, width+32, height+32);
 
         int dy = drawPileLocation.y;
         for (int i = 0; i < 4; i++) {
@@ -264,14 +292,18 @@ public class UnoDisplay extends JPanel implements MouseListener {
 
         int dx = width/2+5;
         for (int i = Math.max(0, discard.size()-4); i < discard.size(); i++) {
-            discard.get(i).paint(g, false, dx, dy, 1.0f);
+            discard.get(i).paint(g, false, dx, dy, 1.0);
             dx += 1;
             dy -= 1;
         }
-        topOfDeck.paint(g, false);
+
+        if (topOfDeck != null) {
+            topOfDeck.paint(g, false);
+        }
 
         opponentManager.paint(g);
         playerManager.paint(g);
+
 
         if (menu != null) {
             menu.paint(g);
@@ -282,8 +314,33 @@ public class UnoDisplay extends JPanel implements MouseListener {
             g.fillRect(width/2-200, height/2-100, 400, 200);
             g.setColor(Color.WHITE);
             g.setFont(new Font("SansSerif", Font.BOLD, 48));
-            UnoCard.shadowTextCenter(g, isPlayerTurn ? "YOU WIN!" : "YOU LOSE", width/2, height/2);
+            shadowTextCenter(g, isPlayerTurn ? "YOU WIN!" : "YOU LOSE", width/2, height/2);
         }
+    }
+
+    public static void setHints(Graphics2D g) {
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+    }
+
+    public static void shadowTextCenter(Graphics2D g, String text, float x, float y) {
+        FontMetrics metrics = g.getFontMetrics(g.getFont());
+        float x2 = x - metrics.stringWidth(text)/2.0f;
+        float y2 = y - metrics.getHeight()/2.0f + metrics.getAscent();
+        shadowText(g, text, x2, y2);
+    }
+
+    public static void shadowText(Graphics2D g, String text, float x, float y) {
+        Color c = g.getColor();
+        g.setColor(Color.DARK_GRAY);
+        for (int a = -1; a <= 1; a++) {
+            for (int b = -1; b <= 1; b++) {
+                g.drawString(text, x + a, y + b);
+            }
+        }
+        g.setColor(c);
+        g.drawString(text, x, y);
     }
 
     @Override

@@ -10,6 +10,7 @@ import menu.ColorSelectMenu;
 import menu.PlayKeepMenu;
 
 import java.awt.*;
+import java.util.Comparator;
 
 public class PlayerManager extends HandManager {
     public void selectCard(int c) {
@@ -48,7 +49,7 @@ public class PlayerManager extends HandManager {
             updateCR();
             g.setColor(UnoDisplay.getTopOfDeck().getColor());
             g.setFont(new Font("SansSerif", Font.BOLD, 24));
-            UnoCard.shadowTextCenter(g, "Your Turn", UnoDisplay.width/2, UnoDisplay.height - UnoCard.SEP_Y_PLAYER*rows - UnoCard.HEIGHT - 30);
+            UnoDisplay.shadowTextCenter(g, "Your Turn", UnoDisplay.width/2, UnoDisplay.height - UnoCard.SEP_Y_PLAYER*rows - UnoCard.HEIGHT - 30);
         }
     }
 
@@ -71,14 +72,15 @@ public class PlayerManager extends HandManager {
             }
             if (UnoCard.inBounds(drawPile, x, y)) {
                 UnoDisplay.pushEvent(new DrawEvent(this, UnoDisplay.drawCard()));
+                return;
             }
+            hand.sort(Comparator.naturalOrder());
         }
     }
 
     @Override
-    public void addCard(UnoCard card) {
-        int c = hand.size();
-        super.addCard(card);
+    public int addCard(UnoCard card) {
+        int c = super.addCard(card);
         if (isTurn) {
             if (UnoDisplay.canPlay(card)) {
                 UnoDisplay.setMenu(new PlayKeepMenu(this, card, c));
@@ -86,5 +88,6 @@ public class PlayerManager extends HandManager {
                 UnoDisplay.pushEvent(new EndTurnEvent());
             }
         }
+        return c;
     }
 }

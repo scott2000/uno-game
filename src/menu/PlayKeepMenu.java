@@ -35,7 +35,7 @@ public class PlayKeepMenu extends UnoObject {
         card.paint(g, false, width/2-175, height/2-UnoCard.HEIGHT/2, 1.0f);
         g.setColor(Color.WHITE);
         g.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        UnoCard.shadowTextCenter(g, "Do you want to play or keep this card?", width/2, height/2-80);
+        UnoDisplay.shadowTextCenter(g, "Do you want to play or keep this card?", width/2, height/2-80);
         buttonLocations = new Point[] {
                 new Point(width/2-WIDTH/2, height/2-HEIGHT/2),
                 new Point(width/2+10+WIDTH, height/2-HEIGHT/2),
@@ -47,8 +47,8 @@ public class PlayKeepMenu extends UnoObject {
             g.fillRect(p.x, p.y, WIDTH, HEIGHT);
         }
         g.setColor(Color.WHITE);
-        UnoCard.shadowTextCenter(g, "Play",buttonLocations[0].x+WIDTH/2, buttonLocations[0].y+HEIGHT/2);
-        UnoCard.shadowTextCenter(g, "Keep",buttonLocations[1].x+WIDTH/2, buttonLocations[0].y+HEIGHT/2);
+        UnoDisplay.shadowTextCenter(g, "Play",buttonLocations[0].x+WIDTH/2, buttonLocations[0].y+HEIGHT/2);
+        UnoDisplay.shadowTextCenter(g, "Keep",buttonLocations[1].x+WIDTH/2, buttonLocations[0].y+HEIGHT/2);
     }
 
     private boolean inBounds(Point p, int x, int y) {

@@ -22,6 +22,11 @@ public class NormalCard extends UnoCard {
     }
 
     @Override
+    public int getOrderCode() {
+        return 2+color*13+number;
+    }
+
+    @Override
     public boolean canPlay(int color, int number) {
         return this.color == color || this.number == number;
     }

@@ -40,18 +40,18 @@ public class ComputerManager extends OpponentManager {
             }
         }
         int colorOffset = UnoDisplay.random.nextInt(4);
+        int targetColor = UnoDisplay.getTopOfDeck().getColorCode();
         int maxColor = 0;
         bestColor = colorOffset;
         for (int i = colorOffset; i < 4+colorOffset; i++) {
             int index = i%4;
             int c = colorCounts[index];
-            if (c > maxColor) {
+            if (c > maxColor && index != targetColor) {
                 maxColor = c;
                 bestColor = index;
             }
         }
         int nonWildCount = 0;
-        int targetColor = UnoDisplay.getTopOfDeck().getColorCode();
         int playerCards = UnoDisplay.getOtherManager().count();
         for (int c = hand.size()-1; c >= 0; c--) {
             UnoCard card = hand.get(c);
@@ -94,9 +94,8 @@ public class ComputerManager extends OpponentManager {
     }
 
     @Override
-    public void addCard(UnoCard card) {
-        int c = hand.size();
-        super.addCard(card);
+    public int addCard(UnoCard card) {
+        int c = super.addCard(card);
         if (isTurn) {
             if (UnoDisplay.canPlay(card)) {
                 if (card instanceof WildCard) {
@@ -108,5 +107,6 @@ public class ComputerManager extends OpponentManager {
                 UnoDisplay.pushEvent(new EndTurnEvent());
             }
         }
+        return c;
     }
 }

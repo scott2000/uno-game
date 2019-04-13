@@ -1,14 +1,14 @@
 package card;
 
-import java.awt.*;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Ellipse2D;
-import java.awt.geom.Rectangle2D;
-import java.awt.geom.RoundRectangle2D;
+import display.UnoDisplay;
 
-public abstract class UnoCard {
-    private static final float MOVE_SPEED = 1.0f;
-    private static final float FLIP_SPEED = 1/200.0f;
+import java.awt.*;
+import java.awt.geom.*;
+import java.awt.image.BufferedImage;
+
+public abstract class UnoCard implements Comparable<UnoCard> {
+    private static final double MOVE_SPEED = 1.0;
+    private static final double FLIP_SPEED = 0.005;
 
     public static final int WIDTH = 75;
     public static final int HEIGHT = 105;
@@ -27,15 +27,16 @@ public abstract class UnoCard {
     public static final int REVERSE = 11;
     public static final int DRAW_2 = 12;
 
-    private float x;
-    private float y;
-
-    private float flipAnimate = -1.0f;
-
+    private double x;
+    private double y;
+    private double flipAnimate = -1.0;
     private boolean isAnimating = false;
+
+    private BufferedImage cached;
 
     public abstract int getColorCode();
     public abstract int getNumberCode();
+    public abstract int getOrderCode();
 
     public abstract boolean canPlay(int color, int number);
     public abstract boolean isNumeric();
@@ -46,7 +47,55 @@ public abstract class UnoCard {
     public abstract String getText();
     public abstract String getShortText();
 
-    public void setPosition(float x, float y) {
+    private static BufferedImage cachedBlank;
+    static {
+        cachedBlank = new BufferedImage(WIDTH+1, HEIGHT+1, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = (Graphics2D) cachedBlank.getGraphics();
+        UnoDisplay.setHints(g);
+
+        AffineTransform transform = g.getTransform();
+        double centerX = WIDTH/2;
+        double centerY = HEIGHT/2;
+
+        // Card background
+        g.setColor(Color.BLACK);
+        g.fill(new RoundRectangle2D.Double(0, 0, WIDTH+1, HEIGHT+1, ARC, ARC));
+        g.setClip(new Rectangle2D.Double(0, 0, WIDTH+1, HEIGHT+1));
+
+        // Center oval
+        g.rotate(Math.PI/2.75, centerX, centerY);
+        g.setColor(Color.RED);
+        g.fill(new Ellipse2D.Double(6, 5, WIDTH-12, HEIGHT-10));
+        g.setColor(Color.DARK_GRAY);
+        g.draw(new Ellipse2D.Double(6, 5, WIDTH-12, HEIGHT-10));
+        g.setTransform(transform);
+        g.setClip(null);
+
+        // Uno text
+        g.setFont(new Font("SansSerif", Font.BOLD|Font.ITALIC, 28));
+        g.setColor(Color.WHITE);
+        UnoDisplay.shadowTextCenter(g, "UNO", (float) centerX, (float) centerY);
+
+        // Card border
+        g.setColor(new Color(0.0f, 0.0f, 0.0f, 0.5f));
+        g.draw(new RoundRectangle2D.Double(0, 0, WIDTH, HEIGHT, ARC, ARC));
+
+        g.dispose();
+    }
+
+    private static BufferedImage shade;
+    static {
+        shade = new BufferedImage(WIDTH+1, HEIGHT+1, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = (Graphics2D) shade.getGraphics();
+        UnoDisplay.setHints(g);
+
+        g.setColor(new Color(0.0f, 0.0f, 0.0f, 0.15f));
+        g.fill(new RoundRectangle2D.Double(0, 0, WIDTH, HEIGHT, ARC, ARC));
+
+        g.dispose();
+    }
+
+    public void setPosition(double x, double y) {
         this.x = x;
         this.y = y;
     }
@@ -55,20 +104,16 @@ public abstract class UnoCard {
         flipAnimate = flipped ? 1 : -1;
     }
 
-    public void update(float targetX, float targetY, boolean flipped, long time) {
-        if (x == 0 && y == 0) {
-            setPosition(targetX, targetY);
-            setFlipped(flipped);
-            return;
-        }
+    public void update(double targetX, double targetY, boolean flipped, long time) {
         isAnimating = false;
         if (x != targetX || y != targetY) {
             isAnimating = true;
             double xDiff = targetX - x;
             double yDiff = targetY - y;
             double magnitude = Math.sqrt(xDiff*xDiff + yDiff*yDiff);
-            x += (float) (xDiff*MOVE_SPEED*time/magnitude);
-            y += (float) (yDiff*MOVE_SPEED*time/magnitude);
+            double stm = MOVE_SPEED*time/magnitude;
+            x += xDiff*stm;
+            y += yDiff*stm;
             if (Math.signum(xDiff) != Math.signum(targetX - x)) {
                 x = targetX;
             }
@@ -76,12 +121,12 @@ public abstract class UnoCard {
                 y = targetY;
             }
         }
-        if (flipped && flipAnimate != 1.0f) {
+        if (flipped && flipAnimate != 1.0) {
             isAnimating = true;
-            flipAnimate = Math.min(flipAnimate + FLIP_SPEED*time, 1.0f);
-        } else if (!flipped && flipAnimate != -1.0f) {
+            flipAnimate = Math.min(flipAnimate + FLIP_SPEED*time, 1.0);
+        } else if (!flipped && flipAnimate != -1.0) {
             isAnimating = true;
-            flipAnimate = Math.max(flipAnimate - FLIP_SPEED*time, -1.0f);
+            flipAnimate = Math.max(flipAnimate - FLIP_SPEED*time, -1.0);
         }
     }
 
@@ -101,25 +146,72 @@ public abstract class UnoCard {
         paint(g, darken, x, y, flipAnimate);
     }
 
-    public void paint(Graphics2D g, boolean darken, float x, float y, float flipAnimate) {
-        if (flipAnimate == 0) return;
-
-        float centerX = x+WIDTH/2;
-        float centerY = y+HEIGHT/2;
-
-        AffineTransform transform = g.getTransform();
-
-        g.translate(centerX, 0);
-        g.scale(Math.abs(flipAnimate), 1.0);
-        g.translate(-centerX, 0);
-
-        if (flipAnimate < 0) {
-            paintBlank(g, x, y);
-            g.setTransform(transform);
+    public void paint(Graphics2D g, boolean darken, double x, double y, double flipAnimate) {
+        if (flipAnimate == 0) {
+            g.setColor(Color.BLACK);
+            g.draw(new Line2D.Double(x, y, x, y+HEIGHT));
             return;
         }
 
-        AffineTransform transformAfterSquash = g.getTransform();
+        AffineTransform transform = new AffineTransform();
+
+        double centerX = WIDTH/2;
+        double scaleFactor = Math.abs(flipAnimate);
+        if (scaleFactor != 1) {
+            scaleFactor = Math.pow(scaleFactor, 0.75);
+            transform.translate(x+centerX, y);
+            transform.scale(scaleFactor, 1.0);
+            transform.translate(-centerX, 0);
+        } else {
+            transform.translate(x, y);
+        }
+
+        if (flipAnimate < 0) {
+            paintBlank(g, transform);
+
+            if (scaleFactor != 1) {
+                g.setColor(new Color(0.0f, 0.0f, 0.0f, 0.5f));
+                g.draw(new RoundRectangle2D.Double(x+centerX*(1-scaleFactor), y, WIDTH*scaleFactor, HEIGHT, ARC*scaleFactor, ARC));
+            }
+            return;
+        }
+
+        g.drawImage(getCached(), transform, null);
+
+        if (darken) {
+            g.drawImage(shade, transform, null);
+        }
+
+        if (scaleFactor != 1) {
+            g.setColor(getColor().darker().darker());
+            g.draw(new RoundRectangle2D.Double(x+centerX*(1-scaleFactor), y, WIDTH*scaleFactor, HEIGHT, ARC*scaleFactor, ARC));
+        }
+    }
+
+    public static void paintBlank(Graphics2D g, double x, double y) {
+        AffineTransform transform = new AffineTransform();
+        transform.translate(x, y);
+        g.drawImage(cachedBlank, transform, null);
+    }
+
+    private static void paintBlank(Graphics2D g, AffineTransform transform) {
+        g.drawImage(cachedBlank, transform, null);
+    }
+
+    void invalidateCached() {
+        cached = null;
+    }
+
+    private BufferedImage getCached() {
+        if (cached != null) return cached;
+
+        cached = new BufferedImage(WIDTH+1, HEIGHT+1, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = (Graphics2D) cached.getGraphics();
+        UnoDisplay.setHints(g);
+
+        AffineTransform transform = g.getTransform();
+        double centerX = WIDTH/2;
+        double centerY = HEIGHT/2;
 
         Color cardColor = getColor();
         Color darkerColor = cardColor.darker().darker();
@@ -128,16 +220,16 @@ public abstract class UnoCard {
 
         // Card background
         g.setColor(cardColor);
-        g.fill(new RoundRectangle2D.Float(x, y, WIDTH, HEIGHT, ARC, ARC));
-        g.setClip(new Rectangle2D.Float(x, y, WIDTH, HEIGHT));
+        g.fill(new RoundRectangle2D.Double(0, 0, WIDTH, HEIGHT, ARC, ARC));
+        g.setClip(new Rectangle2D.Double(0, 0, WIDTH, HEIGHT));
 
         // Center oval
         g.rotate(Math.PI/2.75, centerX, centerY);
         g.setColor(Color.WHITE);
-        g.fill(new Ellipse2D.Float(x+6, y+5, WIDTH-12, HEIGHT-10));
+        g.fill(new Ellipse2D.Double(6, 5, WIDTH-12, HEIGHT-10));
         g.setColor(darkerColor);
-        g.draw(new Ellipse2D.Float(x+6, y+5, WIDTH-12, HEIGHT-10));
-        g.setTransform(transformAfterSquash);
+        g.draw(new Ellipse2D.Double(6, 5, WIDTH-12, HEIGHT-10));
+        g.setTransform(transform);
         g.setClip(null);
 
         // Corner text
@@ -147,10 +239,10 @@ public abstract class UnoCard {
         }
         g.setFont(new Font("SansSerif", Font.BOLD, fontSize));
         g.setColor(Color.WHITE);
-        shadowText(g, cardText, x+5, y+fontSize+2);
+        UnoDisplay.shadowText(g, cardText, 5, fontSize+2);
         g.rotate(Math.PI, centerX, centerY);
-        shadowText(g, cardText, x+5, y+fontSize+2);
-        g.setTransform(transformAfterSquash);
+        UnoDisplay.shadowText(g, cardText, 5, fontSize+2);
+        g.setTransform(transform);
 
         // Big center text
         int bigFontSize = 42;
@@ -159,65 +251,14 @@ public abstract class UnoCard {
         }
         g.setFont(new Font("SansSerif", Font.PLAIN, bigFontSize));
         g.setColor(cardColor);
-        shadowTextCenter(g, cardShortText, centerX, centerY);
-
-        if (darken) {
-            g.setColor(new Color(0.0f, 0.0f, 0.0f, 0.15f));
-            g.fill(new RoundRectangle2D.Float(x, y, WIDTH, HEIGHT, ARC, ARC));
-        }
+        UnoDisplay.shadowTextCenter(g, cardShortText, (float) centerX, (float) centerY);
 
         // Card border
         g.setColor(darkerColor);
-        g.draw(new RoundRectangle2D.Float(x, y, WIDTH, HEIGHT, ARC, ARC));
-        g.setTransform(transform);
-    }
+        g.draw(new RoundRectangle2D.Double(0, 0, WIDTH, HEIGHT, ARC, ARC));
 
-    public static void paintBlank(Graphics2D g, float x, float y) {
-        AffineTransform transform = g.getTransform();
-        float centerX = x+UnoCard.WIDTH/2;
-        float centerY = y+UnoCard.HEIGHT/2;
-
-        // Card background
-        g.setColor(Color.BLACK);
-        g.fill(new RoundRectangle2D.Float(x, y, UnoCard.WIDTH+1, UnoCard.HEIGHT+1, UnoCard.ARC, UnoCard.ARC));
-        g.setClip(new Rectangle2D.Float(x, y, UnoCard.WIDTH+1, UnoCard.HEIGHT+1));
-
-        // Center oval
-        g.rotate(Math.PI/2.75, centerX, centerY);
-        g.setColor(Color.RED);
-        g.fill(new Ellipse2D.Float(x+6, y+5, UnoCard.WIDTH-12, UnoCard.HEIGHT-10));
-        g.setColor(Color.DARK_GRAY);
-        g.draw(new Ellipse2D.Float(x+6, y+5, UnoCard.WIDTH-12, UnoCard.HEIGHT-10));
-        g.setTransform(transform);
-        g.setClip(null);
-
-        // Uno text
-        g.setFont(new Font("SansSerif", Font.BOLD|Font.ITALIC, 28));
-        g.setColor(Color.WHITE);
-        shadowTextCenter(g, "UNO", centerX, centerY);
-
-        // Card border
-        g.setColor(new Color(0.0f, 0.0f, 0.0f, 0.5f));
-        g.draw(new RoundRectangle2D.Float(x, y, UnoCard.WIDTH, UnoCard.HEIGHT, UnoCard.ARC, UnoCard.ARC));
-    }
-
-    public static void shadowTextCenter(Graphics2D g, String text, float x, float y) {
-        FontMetrics metrics = g.getFontMetrics(g.getFont());
-        float x2 = x - metrics.stringWidth(text)/2.0f;
-        float y2 = y - metrics.getHeight()/2.0f + metrics.getAscent();
-        shadowText(g, text, x2, y2);
-    }
-
-    public static void shadowText(Graphics2D g, String text, float x, float y) {
-        Color c = g.getColor();
-        g.setColor(Color.DARK_GRAY);
-        for (int a = -1; a <= 1; a++) {
-            for (int b = -1; b <= 1; b++) {
-                g.drawString(text, x + a, y + b);
-            }
-        }
-        g.setColor(c);
-        g.drawString(text, x, y);
+        g.dispose();
+        return cached;
     }
 
     public static Color getColor(int color) {
@@ -261,5 +302,10 @@ public abstract class UnoCard {
         default:
             return Integer.toString(number);
         }
+    }
+
+    @Override
+    public int compareTo(UnoCard o) {
+        return getOrderCode()-o.getOrderCode();
     }
 }

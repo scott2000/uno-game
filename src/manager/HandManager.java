@@ -19,8 +19,10 @@ public abstract class HandManager extends UnoObject {
         isTurn = false;
     };
 
-    public void addCard(UnoCard card) {
+    public int addCard(UnoCard card) {
+        int c = hand.size();
         hand.add(card);
+        return c;
     }
 
     public UnoCard take(int c) {

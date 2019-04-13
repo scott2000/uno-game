@@ -12,6 +12,7 @@ public class WildCard extends UnoCard {
 
     public void setColor(int color) {
         this.color = color;
+        invalidateCached();
     }
 
     @Override
@@ -25,6 +26,15 @@ public class WildCard extends UnoCard {
     @Override
     public int getNumberCode() {
         return UnoCard.NO_NUMBER;
+    }
+
+    @Override
+    public int getOrderCode() {
+        if (isDrawFour) {
+            return 1;
+        } else {
+            return 0;
+        }
     }
 
     @Override

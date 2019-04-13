@@ -33,7 +33,7 @@ public class ColorSelectMenu extends UnoObject {
         g.fillRect(width/2-200, height/2-100, 400, 200);
         g.setColor(Color.WHITE);
         g.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        UnoCard.shadowTextCenter(g, "Select a color for the wild card:", width/2, height/2-80);
+        UnoDisplay.shadowTextCenter(g, "Select a color for the wild card:", width/2, height/2-80);
         int xl = width/2-BUTTON_SIZE;
         int xr = width/2;
         int yt = height/2-BUTTON_SIZE+15;
