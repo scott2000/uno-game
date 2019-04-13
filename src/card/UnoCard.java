@@ -97,7 +97,6 @@ public abstract class UnoCard {
         return x >= p.x && x <= p.x+WIDTH && y >= p.y && y <= p.y+HEIGHT;
     }
 
-    // card != topOfDeck && (state == STATE_COMPUTER_MOVE || !canPlay(card))
     public void paint(Graphics2D g, boolean darken) {
         paint(g, darken, x, y, flipAnimate);
     }

@@ -32,6 +32,7 @@ public class UnoDisplay extends JPanel implements MouseListener {
     private static UnoObject menu;
 
     private static UnoCard topOfDeck;
+    private static boolean isInitialized = false;
 
     private static boolean isPlayerTurn;
     private static long gameOverTimer;
@@ -44,37 +45,40 @@ public class UnoDisplay extends JPanel implements MouseListener {
 
     UnoDisplay() {
         addMouseListener(this);
+    }
+
+    private void setup() {
         reset();
         new Thread(() -> {
-            long lastTime = System.currentTimeMillis();
-            while (true) {
-                synchronized (this) {
-                    long currentTime = System.currentTimeMillis();
-                    long time = currentTime-lastTime;
-                    lastTime = currentTime;
+            try {
+                long lastTime = System.currentTimeMillis();
+                while (true) {
+                    synchronized (this) {
+                        long currentTime = System.currentTimeMillis();
+                        long time = currentTime-lastTime;
+                        lastTime = currentTime;
 
-                    if (gameOverTimer == 0) {
-                        updateWHD(false);
-                        playerManager.update(time);
-                        opponentManager.update(time);
-                        topOfDeck.update(topOfDeckLocation.x, topOfDeckLocation.y, true, time);
-                        if (currentEvent != null && currentEvent.isDone()) {
-                            currentEvent = null;
+                        if (gameOverTimer == 0) {
+                            updateWHD(false);
+                            playerManager.update(time);
+                            opponentManager.update(time);
+                            topOfDeck.update(topOfDeckLocation.x, topOfDeckLocation.y, true, time);
+                            if (currentEvent != null && currentEvent.isDone()) {
+                                currentEvent = null;
+                            }
+                            if (currentEvent == null && !eventQueue.isEmpty()) {
+                                currentEvent = eventQueue.removeFirst();
+                                currentEvent.start();
+                            }
+                        } else if (currentTime >= gameOverTimer) {
+                            reset();
                         }
-                        if (currentEvent == null && !eventQueue.isEmpty()) {
-                            currentEvent = eventQueue.removeFirst();
-                            currentEvent.start();
-                        }
-                    } else if (currentTime >= gameOverTimer) {
-                        reset();
+
+                        repaint();
                     }
-
-                    repaint();
-                }
-                try {
                     Thread.sleep(16);
-                } catch (InterruptedException ignored) {}
-            }
+                }
+            } catch (InterruptedException ignored) {}
         }).start();
     }
 
@@ -101,9 +105,12 @@ public class UnoDisplay extends JPanel implements MouseListener {
             opponentManager.addCard(drawCard());
             playerManager.addCard(drawCard());
         }
+        topOfDeck = null;
         for (int i = deck.size()-1; ; i--) {
             if (deck.get(i).isNumeric()) {
                 topOfDeck = deck.remove(i);
+                topOfDeck.setPosition(drawPileLocation.x, drawPileLocation.y);
+                topOfDeck.setFlipped(false);
                 break;
             }
         }
@@ -236,6 +243,11 @@ public class UnoDisplay extends JPanel implements MouseListener {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        if (!isInitialized) {
+            setup();
+            isInitialized = true;
+        }
 
         updateWHD(true);
 
