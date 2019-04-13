@@ -1,14 +1,16 @@
+package card;
+
 import java.awt.*;
 
-class WildCard implements UnoCard {
+public class WildCard extends UnoCard {
     private boolean isDrawFour;
     private int color = -1;
 
-    WildCard(boolean isDrawFour) {
+    public WildCard(boolean isDrawFour) {
         this.isDrawFour = isDrawFour;
     }
 
-    void setColor(int color) {
+    public void setColor(int color) {
         this.color = color;
     }
 
@@ -22,7 +24,7 @@ class WildCard implements UnoCard {
 
     @Override
     public int getNumberCode() {
-        return NO_NUMBER;
+        return UnoCard.NO_NUMBER;
     }
 
     @Override

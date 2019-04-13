@@ -1,10 +1,12 @@
+package card;
+
 import java.awt.*;
 
-class NormalCard implements UnoCard {
+public class NormalCard extends UnoCard {
     private int color;
     private int number;
 
-    NormalCard(int color, int number) {
+    public NormalCard(int color, int number) {
         this.color = color;
         this.number = number;
     }
