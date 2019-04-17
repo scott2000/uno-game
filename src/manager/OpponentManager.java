@@ -33,5 +33,5 @@ public abstract class OpponentManager extends HandManager {
     }
 
     @Override
-    public void click(int x, int y) {};
+    public void click(int x, int y) {}
 }

@@ -5,27 +5,34 @@ import display.UnoDisplay;
 import java.awt.*;
 import java.awt.geom.*;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.Collections;
 
 public abstract class UnoCard implements Comparable<UnoCard> {
     private static final double MOVE_SPEED = 1.0;
     private static final double FLIP_SPEED = 0.005;
 
+    private static final int ARC = 7;
     public static final int WIDTH = 75;
     public static final int HEIGHT = 105;
-    public static final int ARC = 7;
     public static final int SEP_X = WIDTH + 5;
     public static final int SEP_Y_COMPUTER = HEIGHT/3;
     public static final int SEP_Y_PLAYER = HEIGHT*2/3;
 
-    public static final int RED = 0;
-    public static final int YELLOW = 1;
-    public static final int GREEN = 2;
-    public static final int BLUE = 3;
+    private static final int RED = 0;
+    private static final int YELLOW = 1;
+    private static final int GREEN = 2;
+    private static final int BLUE = 3;
 
-    public static final int NO_NUMBER = -1;
-    public static final int SKIP = 10;
-    public static final int REVERSE = 11;
-    public static final int DRAW_2 = 12;
+    public static final int COLOR_MIN = RED;
+    public static final int COLOR_MAX = BLUE;
+
+    static final int NO_NUMBER = -1;
+    static final int SKIP = 10;
+    static final int REVERSE = 11;
+    static final int DRAW_2 = 12;
+
+    public static final int NUMBER_MAX = DRAW_2;
 
     private double x;
     private double y;
@@ -95,6 +102,23 @@ public abstract class UnoCard implements Comparable<UnoCard> {
         g.dispose();
     }
 
+    public static ArrayList<UnoCard> newDeck() {
+        ArrayList<UnoCard> deck = new ArrayList<>();
+        for (int color = UnoCard.COLOR_MIN; color <= UnoCard.COLOR_MAX; color++) {
+            deck.add(new NormalCard(color, 0));
+            for (int number = 1; number <= UnoCard.NUMBER_MAX; number++) {
+                deck.add(new NormalCard(color, number));
+                deck.add(new NormalCard(color, number));
+            }
+        }
+        for (int i = 0; i < 4; i++) {
+            deck.add(new WildCard(false));
+            deck.add(new WildCard(true));
+        }
+        Collections.shuffle(deck, UnoDisplay.random);
+        return deck;
+    }
+
     public void setPosition(double x, double y) {
         this.x = x;
         this.y = y;
@@ -105,33 +129,45 @@ public abstract class UnoCard implements Comparable<UnoCard> {
     }
 
     public void update(double targetX, double targetY, boolean flipped, long time) {
-        isAnimating = false;
-        if (x != targetX || y != targetY) {
-            isAnimating = true;
-            double xDiff = targetX - x;
-            double yDiff = targetY - y;
-            double magnitude = Math.sqrt(xDiff*xDiff + yDiff*yDiff);
-            double stm = MOVE_SPEED*time/magnitude;
-            x += xDiff*stm;
-            y += yDiff*stm;
-            if (Math.signum(xDiff) != Math.signum(targetX - x)) {
-                x = targetX;
+        if (isAnimating) {
+            isAnimating = false;
+            if (x != targetX || y != targetY) {
+                double xDiff = targetX - x;
+                double yDiff = targetY - y;
+                double magnitude = Math.sqrt(xDiff * xDiff + yDiff * yDiff);
+                double stm = MOVE_SPEED * time / magnitude;
+                x += xDiff * stm;
+                y += yDiff * stm;
+                if (Math.signum(xDiff) != Math.signum(targetX - x)) {
+                    x = targetX;
+                } else {
+                    isAnimating = true;
+                }
+                if (Math.signum(yDiff) != Math.signum(targetY - y)) {
+                    y = targetY;
+                } else {
+                    isAnimating = true;
+                }
             }
-            if (Math.signum(yDiff) != Math.signum(targetY - y)) {
-                y = targetY;
+            if (flipped && flipAnimate != 1.0) {
+                isAnimating = true;
+                flipAnimate = Math.min(flipAnimate + FLIP_SPEED * time, 1.0);
+            } else if (!flipped && flipAnimate != -1.0) {
+                isAnimating = true;
+                flipAnimate = Math.max(flipAnimate - FLIP_SPEED * time, -1.0);
             }
-        }
-        if (flipped && flipAnimate != 1.0) {
-            isAnimating = true;
-            flipAnimate = Math.min(flipAnimate + FLIP_SPEED*time, 1.0);
-        } else if (!flipped && flipAnimate != -1.0) {
-            isAnimating = true;
-            flipAnimate = Math.max(flipAnimate - FLIP_SPEED*time, -1.0);
+        } else {
+            setPosition(targetX, targetY);
+            setFlipped(flipped);
         }
     }
 
-    public boolean isAnimating() {
-        return isAnimating;
+    public boolean doneAnimating() {
+        return !isAnimating;
+    }
+
+    public void startAnimating() {
+        isAnimating = true;
     }
 
     public boolean inBounds(int x, int y) {
@@ -276,7 +312,7 @@ public abstract class UnoCard implements Comparable<UnoCard> {
         }
     }
 
-    public static String getColorText(int color) {
+    static String getColorText(int color) {
         switch (color) {
         case RED:
             return "Red";
@@ -291,7 +327,7 @@ public abstract class UnoCard implements Comparable<UnoCard> {
         }
     }
 
-    public static String getNumberText(int number) {
+    static String getNumberText(int number) {
         switch (number) {
         case SKIP:
             return "Skip";

@@ -9,15 +9,15 @@ import manager.PlayerManager;
 
 import java.awt.*;
 
-public class PlayKeepMenu extends UnoObject {
+public class PlayKeepMenu implements UnoObject {
     private static final int WIDTH = 75;
     private static final int HEIGHT = 50;
 
-    PlayerManager target;
-    UnoCard card;
-    int c;
+    private PlayerManager target;
+    private UnoCard card;
+    private int c;
 
-    Point[] buttonLocations;
+    private Point[] buttonLocations;
 
     public PlayKeepMenu(PlayerManager target, UnoCard card, int c) {
         this.target = target;

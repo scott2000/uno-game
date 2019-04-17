@@ -13,10 +13,11 @@ public class FlipOverCardEvent implements Event {
     @Override
     public void start() {
         UnoDisplay.flipOverCard(card);
+        card.startAnimating();
     }
 
     @Override
     public boolean isDone() {
-        return !card.isAnimating();
+        return card.doneAnimating();
     }
 }

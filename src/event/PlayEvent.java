@@ -16,12 +16,13 @@ public class PlayEvent implements Event {
 
     @Override
     public void start() {
-        card = target.take(c);
+        card = target.takeCard(c);
         UnoDisplay.playCard(card);
+        card.startAnimating();
     }
 
     @Override
     public boolean isDone() {
-        return !card.isAnimating();
+        return card.doneAnimating();
     }
 }

@@ -11,7 +11,7 @@ import event.EndTurnEvent;
 import event.PlayEvent;
 
 public class ComputerManager extends OpponentManager {
-    int bestColor;
+    private int bestColor;
 
     @Override
     public boolean claimsStart() {

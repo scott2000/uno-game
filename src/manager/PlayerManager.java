@@ -10,7 +10,7 @@ import menu.ColorSelectMenu;
 import menu.PlayKeepMenu;
 
 import java.awt.*;
-import java.util.Comparator;
+import java.util.ArrayList;
 
 public class PlayerManager extends HandManager {
     public void selectCard(int c) {
@@ -19,6 +19,8 @@ public class PlayerManager extends HandManager {
 
     private int columns;
     private int rows;
+
+    private ArrayList<Integer> sortedIndices = new ArrayList<>();
 
     private void updateCR() {
         columns = Math.max((UnoDisplay.width-15)/UnoCard.SEP_X, 3);
@@ -30,19 +32,20 @@ public class PlayerManager extends HandManager {
         updateCR();
         int indent = (UnoDisplay.width - Math.min(columns, hand.size())*UnoCard.SEP_X + 5)/2;
 
-        for (int c = 0; c < hand.size(); c++) {
-            int row = c/columns;
-            int column = c%columns;
+        for (int cc = 0; cc < sortedIndices.size(); cc++) {
+            int row = cc/columns;
+            int column = cc%columns;
             float x = indent + UnoCard.SEP_X*column;
             float y = UnoDisplay.height - UnoCard.SEP_Y_PLAYER*(rows-row) - UnoCard.HEIGHT - 10;
-            UnoCard card = hand.get(c);
+            UnoCard card = hand.get(sortedIndices.get(cc));
             card.update(x, y, true, time);
         }
     }
 
     @Override
     public void paint(Graphics2D g) {
-        for (UnoCard card : hand) {
+        for (int c : sortedIndices) {
+            UnoCard card = hand.get(c);
             card.paint(g, UnoDisplay.hasEvent() || !isTurn || !UnoDisplay.canPlay(card));
         }
         if (isTurn) {
@@ -57,7 +60,8 @@ public class PlayerManager extends HandManager {
     public void click(int x, int y) {
         Point drawPile = UnoDisplay.getDrawPileLocation();
         if (drawPile != null) {
-            for (int c = hand.size() - 1; c >= 0; c--) {
+            for (int cc = sortedIndices.size() - 1; cc >= 0; cc--) {
+                int c = sortedIndices.get(cc);
                 UnoCard card = hand.get(c);
                 if (card.inBounds(x, y)) {
                     if (UnoDisplay.canPlay(card)) {
@@ -72,15 +76,40 @@ public class PlayerManager extends HandManager {
             }
             if (UnoCard.inBounds(drawPile, x, y)) {
                 UnoDisplay.pushEvent(new DrawEvent(this, UnoDisplay.drawCard()));
+            }
+        }
+    }
+
+    private void addSortedCard(int c, UnoCard card) {
+        int order = card.getOrderCode();
+        for (int cc = 0; cc < sortedIndices.size(); cc++) {
+            if (order < hand.get(sortedIndices.get(cc)).getOrderCode()) {
+                sortedIndices.add(cc, c);
                 return;
             }
-            hand.sort(Comparator.naturalOrder());
+        }
+        sortedIndices.add(c);
+    }
+
+    private void removeSortedCard(int c) {
+        int cc = 0;
+        while (cc < sortedIndices.size()) {
+            int i = sortedIndices.get(cc);
+            if (i == c) {
+                sortedIndices.remove(cc);
+            } else {
+                if (i > c) {
+                    sortedIndices.set(cc, i-1);
+                }
+                cc++;
+            }
         }
     }
 
     @Override
     public int addCard(UnoCard card) {
         int c = super.addCard(card);
+        addSortedCard(c, card);
         if (isTurn) {
             if (UnoDisplay.canPlay(card)) {
                 UnoDisplay.setMenu(new PlayKeepMenu(this, card, c));
@@ -89,5 +118,12 @@ public class PlayerManager extends HandManager {
             }
         }
         return c;
+    }
+
+    @Override
+    public UnoCard takeCard(int c) {
+        UnoCard card = super.takeCard(c);
+        removeSortedCard(c);
+        return card;
     }
 }

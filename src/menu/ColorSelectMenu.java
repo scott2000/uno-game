@@ -9,14 +9,14 @@ import manager.PlayerManager;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 
-public class ColorSelectMenu extends UnoObject {
+public class ColorSelectMenu implements UnoObject {
     private static final int BUTTON_SIZE = 75;
 
-    PlayerManager target;
-    WildCard card;
-    int c;
+    private PlayerManager target;
+    private WildCard card;
+    private int c;
 
-    Point[] buttonLocations;
+    private Point[] buttonLocations;
 
     public ColorSelectMenu(PlayerManager target, WildCard card, int c) {
         this.target = target;
@@ -45,7 +45,7 @@ public class ColorSelectMenu extends UnoObject {
                 new Point(xr, yt),
         };
         g.clip(new Ellipse2D.Double(xl, yt,BUTTON_SIZE*2, BUTTON_SIZE*2));
-        for (int color = UnoCard.RED; color <= UnoCard.BLUE; color++) {
+        for (int color = UnoCard.COLOR_MIN; color <= UnoCard.COLOR_MAX; color++) {
             Point p = buttonLocations[color];
             g.setColor(UnoCard.getColor(color));
             g.fillRect(p.x, p.y, BUTTON_SIZE, BUTTON_SIZE);

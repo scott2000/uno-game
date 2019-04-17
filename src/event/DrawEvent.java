@@ -15,10 +15,11 @@ public class DrawEvent implements Event {
     @Override
     public void start() {
         target.addCard(card);
+        card.startAnimating();
     }
 
     @Override
     public boolean isDone() {
-        return !card.isAnimating();
+        return card.doneAnimating();
     }
 }

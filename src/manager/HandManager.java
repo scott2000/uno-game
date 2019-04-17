@@ -5,7 +5,7 @@ import display.UnoObject;
 
 import java.util.ArrayList;
 
-public abstract class HandManager extends UnoObject {
+public abstract class HandManager implements UnoObject {
     ArrayList<UnoCard> hand = new ArrayList<>();
     boolean isTurn = false;
 
@@ -13,11 +13,11 @@ public abstract class HandManager extends UnoObject {
 
     public void startTurn() {
         isTurn = true;
-    };
+    }
 
     public void endTurn() {
         isTurn = false;
-    };
+    }
 
     public int addCard(UnoCard card) {
         int c = hand.size();
@@ -25,7 +25,7 @@ public abstract class HandManager extends UnoObject {
         return c;
     }
 
-    public UnoCard take(int c) {
+    public UnoCard takeCard(int c) {
         return hand.remove(c);
     }
 

@@ -71,15 +71,15 @@ public class UnoDisplay extends JPanel implements MouseListener {
                         long time = currentTime-lastTime;
                         lastTime = currentTime;
 
+                        updateWHD(false);
+                        playerManager.update(time);
+                        opponentManager.update(time);
+
+                        if (topOfDeck != null) {
+                            topOfDeck.update(topOfDeckLocation.x, topOfDeckLocation.y, true, time);
+                        }
+
                         if (gameOverTimer == 0) {
-                            updateWHD(false);
-                            playerManager.update(time);
-                            opponentManager.update(time);
-
-                            if (topOfDeck != null) {
-                                topOfDeck.update(topOfDeckLocation.x, topOfDeckLocation.y, true, time);
-                            }
-
                             if (currentEvent != null && currentEvent.isDone()) {
                                 currentEvent = null;
                             }
@@ -100,19 +100,7 @@ public class UnoDisplay extends JPanel implements MouseListener {
     }
 
     private void reset() {
-        deck = new ArrayList<>();
-        for (int color = UnoCard.RED; color <= UnoCard.BLUE; color++) {
-            deck.add(new NormalCard(color, 0));
-            for (int number = 1; number <= UnoCard.DRAW_2; number++) {
-                deck.add(new NormalCard(color, number));
-                deck.add(new NormalCard(color, number));
-            }
-        }
-        for (int i = 0; i < 4; i++) {
-            deck.add(new WildCard(false));
-            deck.add(new WildCard(true));
-        }
-        Collections.shuffle(deck, random);
+        deck = UnoCard.newDeck();
         discard = new ArrayList<>();
         eventQueue = new ArrayDeque<>();
         updateWHD(false);
