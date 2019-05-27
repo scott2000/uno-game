@@ -3,9 +3,6 @@ package manager;
 import card.UnoCard;
 import card.WildCard;
 import display.UnoDisplay;
-import event.DrawEvent;
-import event.EndTurnEvent;
-import event.PlayEvent;
 import menu.ColorSelectMenu;
 import menu.PlayKeepMenu;
 
@@ -14,7 +11,7 @@ import java.util.ArrayList;
 
 public class PlayerManager extends HandManager {
     public void selectCard(int c) {
-        UnoDisplay.pushEvent(new PlayEvent(this, c));
+        UnoDisplay.playCard(c);
     }
 
     private int columns;
@@ -40,6 +37,12 @@ public class PlayerManager extends HandManager {
             UnoCard card = hand.get(sortedIndices.get(cc));
             card.update(x, y, true, time);
         }
+    }
+
+    @Override
+    public void reset() {
+        super.reset();
+        sortedIndices.clear();
     }
 
     @Override
@@ -75,7 +78,7 @@ public class PlayerManager extends HandManager {
                 }
             }
             if (UnoCard.inBounds(drawPile, x, y)) {
-                UnoDisplay.pushEvent(new DrawEvent(this, UnoDisplay.drawCard()));
+                UnoDisplay.drawCardTo(true);
             }
         }
     }
@@ -114,7 +117,7 @@ public class PlayerManager extends HandManager {
             if (UnoDisplay.canPlay(card)) {
                 UnoDisplay.setMenu(new PlayKeepMenu(this, card, c));
             } else {
-                UnoDisplay.pushEvent(new EndTurnEvent());
+                UnoDisplay.finishTurn();
             }
         }
         return c;

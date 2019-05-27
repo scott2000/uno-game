@@ -3,8 +3,6 @@ package display;
 import card.NormalCard;
 import card.UnoCard;
 import card.WildCard;
-import event.*;
-import event.Event;
 import manager.ComputerManager;
 import manager.HandManager;
 import manager.OpponentManager;
@@ -29,9 +27,9 @@ public class UnoDisplay extends JPanel implements MouseListener {
     public static int height;
 
     private static ArrayList<UnoCard> deck;
-    private static ArrayList<UnoCard> discard;
+    private static ArrayList<UnoCard> discard = new ArrayList<>();
 
-    private static HandManager playerManager;
+    private static PlayerManager playerManager = new PlayerManager();
     private static OpponentManager opponentManager;
     private static UnoObject menu;
 
@@ -39,13 +37,12 @@ public class UnoDisplay extends JPanel implements MouseListener {
     private static boolean isInitialized = false;
 
     private static boolean isPlayerTurn;
-    private static boolean isGameStarted;
     private static long gameOverTimer;
 
     private static Point drawPileLocation;
     private static Point topOfDeckLocation;
 
-    private static ArrayDeque<Event> eventQueue;
+    private static ArrayDeque<Event> eventQueue = new ArrayDeque<>();
     private static Event currentEvent;
 
     /*
@@ -61,6 +58,7 @@ public class UnoDisplay extends JPanel implements MouseListener {
     }
 
     private void setup() {
+        opponentManager = new ComputerManager();
         reset();
         new Thread(() -> {
             try {
@@ -101,63 +99,20 @@ public class UnoDisplay extends JPanel implements MouseListener {
 
     private void reset() {
         deck = UnoCard.newDeck();
-        discard = new ArrayList<>();
-        eventQueue = new ArrayDeque<>();
-        updateWHD(false);
-        opponentManager = new ComputerManager();
-        playerManager = new PlayerManager();
-        for (int i = 0; i < 7; i++) {
-            pushEvent(new DrawEvent(opponentManager, drawCard()));
-            pushEvent(new DrawEvent(playerManager, drawCard()));
-        }
+        discard.clear();
+        eventQueue.clear();
         topOfDeck = null;
-        for (int i = deck.size()-1; ; i--) {
-            if (deck.get(i).isNumeric()) {
-                UnoCard card = deck.remove(i);
-                card.setPosition(drawPileLocation.x, drawPileLocation.y);
-                card.setFlipped(false);
-                pushEvent(new FlipOverCardEvent(card));
-                break;
-            }
-        }
         gameOverTimer = 0;
+        updateWHD(false);
+        playerManager.reset();
+        opponentManager.reset();
         isPlayerTurn = !opponentManager.claimsStart();
-        isGameStarted = false;
-        pushEvent(new StartGameEvent());
-    }
-
-    public static void playCard(UnoCard card) {
-        discard.add(topOfDeck);
-        topOfDeck = card;
-        if (getCurrentManager().count() == 0) {
-            pushEvent(new GameOverEvent());
+        for (int i = 0; i < 7; i++) {
+            drawCardTo(false);
+            drawCardTo(true);
         }
-        if (card.isSkip()) {
-            HandManager other = getOtherManager();
-            int draws = card.cardDraws();
-            for (int i = 0; i < draws; i++) {
-                pushEvent(new DrawEvent(other, drawCard()));
-            }
-            pushEvent(new RestartTurnEvent());
-        } else {
-            pushEvent(new EndTurnEvent());
-        }
-    }
-
-    public static void finishTurn() {
-        if (isPlayerTurn) {
-            playerManager.endTurn();
-            isPlayerTurn = false;
-            opponentManager.startTurn();
-        } else {
-            opponentManager.endTurn();
-            isPlayerTurn = true;
-            playerManager.startTurn();
-        }
-    }
-
-    public static void endGame() {
-        gameOverTimer = System.currentTimeMillis()+5000;
+        flipOverCard();
+        startGame();
     }
 
     public static Point getDrawPileLocation() {
@@ -185,13 +140,6 @@ public class UnoDisplay extends JPanel implements MouseListener {
         return deck.remove(size - 1);
     }
 
-    public static UnoCard drawCard() {
-        UnoCard card = getDrawCard();
-        card.setPosition(drawPileLocation.x, drawPileLocation.y);
-        card.setFlipped(false);
-        return card;
-    }
-
     public static boolean canPlay(UnoCard card) {
         return card.canPlay(topOfDeck.getColorCode(), topOfDeck.getNumberCode());
     }
@@ -212,7 +160,7 @@ public class UnoDisplay extends JPanel implements MouseListener {
         return isPlayerTurn ? opponentManager : playerManager;
     }
 
-    public static void pushEvent(Event event) {
+    private static void pushEvent(Event event) {
         eventQueue.addLast(event);
     }
 
@@ -220,24 +168,136 @@ public class UnoDisplay extends JPanel implements MouseListener {
         return !eventQueue.isEmpty();
     }
 
-    public static void startGame() {
-        if (isGameStarted) {
-            throw new IllegalStateException("error: game already started");
-        }
-        isGameStarted = true;
-        if (isPlayerTurn) {
-            playerManager.startTurn();
-        } else {
-            opponentManager.startTurn();
-        }
+    public static void finishTurn() {
+        System.out.println("finishTurn()");
+        pushEvent(() -> {
+            if (hasEvent()) {
+                throw new IllegalStateException("error: finishing turn before all events handled");
+            }
+            if (isPlayerTurn) {
+                playerManager.endTurn();
+                isPlayerTurn = false;
+                opponentManager.startTurn();
+            } else {
+                opponentManager.endTurn();
+                isPlayerTurn = true;
+                playerManager.startTurn();
+            }
+        });
     }
 
-    public static void flipOverCard(UnoCard card) {
-        if (topOfDeck == null) {
-            topOfDeck = card;
-        } else {
-            throw new IllegalStateException("error: card already flipped over");
-        }
+    public static void delay(long time) {
+        System.out.printf("delay(%d)\n", time);
+        pushEvent(new Event() {
+            private long timer = time;
+
+            @Override
+            public void start() {
+                timer += System.currentTimeMillis();
+            }
+
+            @Override
+            public boolean isDone() {
+                return System.currentTimeMillis() >= timer;
+            }
+        });
+    }
+
+    public static void drawCardTo(boolean current) {
+        System.out.printf("drawCardTo(%b)\n", current);
+        pushEvent(new Event() {
+            private UnoCard card;
+
+            @Override
+            public void start() {
+                card = getDrawCard();
+                card.setPosition(drawPileLocation.x, drawPileLocation.y);
+                card.setFlipped(false);
+                card.startAnimating();
+                if (current == isPlayerTurn) {
+                    playerManager.addCard(card);
+                } else {
+                    opponentManager.addCard(card);
+                }
+            }
+
+            @Override
+            public boolean isDone() {
+                return card.doneAnimating();
+            }
+        });
+    }
+
+    public static void playCard(int c) {
+        System.out.printf("playCard(%d)\n", c);
+        pushEvent(new Event() {
+            @Override
+            public void start() {
+                discard.add(topOfDeck);
+                topOfDeck = getCurrentManager().takeCard(c);;
+                if (getCurrentManager().count() == 0) {
+                    endGame();
+                }
+                if (topOfDeck.isSkip()) {
+                    HandManager other = getOtherManager();
+                    int draws = topOfDeck.cardDraws();
+                    for (int i = 0; i < draws; i++) {
+                        drawCardTo(false);
+                    }
+                    restartTurn();
+                } else {
+                    finishTurn();
+                }
+                topOfDeck.startAnimating();
+            }
+
+            @Override
+            public boolean isDone() {
+                return topOfDeck.doneAnimating();
+            }
+        });
+    }
+
+    private static void flipOverCard() {
+        System.out.println("flipOverCard()");
+        pushEvent(new Event() {
+            @Override
+            public void start() {
+                for (int i = deck.size()-1; ; i--) {
+                    if (deck.get(i).isNumeric()) {
+                        topOfDeck = deck.remove(i);
+                        topOfDeck.setPosition(drawPileLocation.x, drawPileLocation.y);
+                        topOfDeck.setFlipped(false);
+                        topOfDeck.startAnimating();
+                        return;
+                    }
+                }
+            }
+
+            @Override
+            public boolean isDone() {
+                return topOfDeck.doneAnimating();
+            }
+        });
+    }
+
+    private static void restartTurn() {
+        System.out.println("restartTurn()");
+        pushEvent(() -> {
+            HandManager current = getCurrentManager();
+            current.endTurn();
+            current.startTurn();
+        });
+    }
+
+    private static void startGame() {
+        System.out.println("startGame()");
+        pushEvent(() -> getCurrentManager().startTurn());
+    }
+
+    private static void endGame() {
+        System.out.println("endGame()");
+        pushEvent(() -> gameOverTimer = System.currentTimeMillis()+5000);
     }
 
     @Override

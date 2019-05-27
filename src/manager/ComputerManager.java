@@ -5,10 +5,6 @@ import card.NormalCard;
 import card.UnoCard;
 import card.WildCard;
 import display.UnoDisplay;
-import event.DelayEvent;
-import event.DrawEvent;
-import event.EndTurnEvent;
-import event.PlayEvent;
 
 public class ComputerManager extends OpponentManager {
     private int bestColor;
@@ -29,7 +25,7 @@ public class ComputerManager extends OpponentManager {
     @Override
     public void startTurn() {
         super.startTurn();
-        UnoDisplay.pushEvent(new DelayEvent(500));
+        UnoDisplay.delay(500);
         int playable = -1;
         int nonWild = -1;
         int matchColor = -1;
@@ -87,10 +83,10 @@ public class ComputerManager extends OpponentManager {
             wild.setColor(bestColor);
             c = playable;
         } else {
-            UnoDisplay.pushEvent(new DrawEvent(this, UnoDisplay.drawCard()));
+            UnoDisplay.drawCardTo(true);
             return;
         }
-        UnoDisplay.pushEvent(new PlayEvent(this, c));
+        UnoDisplay.playCard(c);
     }
 
     @Override
@@ -101,10 +97,10 @@ public class ComputerManager extends OpponentManager {
                 if (card instanceof WildCard) {
                     ((WildCard) card).setColor(bestColor);
                 }
-                UnoDisplay.pushEvent(new DelayEvent(100));
-                UnoDisplay.pushEvent(new PlayEvent(this, c));
+                UnoDisplay.delay(100);
+                UnoDisplay.playCard(c);
             } else {
-                UnoDisplay.pushEvent(new EndTurnEvent());
+                UnoDisplay.finishTurn();
             }
         }
         return c;

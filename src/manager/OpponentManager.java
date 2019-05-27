@@ -8,6 +8,9 @@ import java.awt.*;
 public abstract class OpponentManager extends HandManager {
     public abstract boolean claimsStart();
 
+    public void didPlay(UnoCard card) {}
+    public void didDraw() {}
+
     @Override
     public void update(long time) {
         int width = UnoDisplay.width;

@@ -11,6 +11,11 @@ public abstract class HandManager implements UnoObject {
 
     public abstract void update(long time);
 
+    public void reset() {
+        hand.clear();
+        isTurn = false;
+    }
+
     public void startTurn() {
         isTurn = true;
     }

@@ -4,7 +4,6 @@ import card.UnoCard;
 import card.WildCard;
 import display.UnoDisplay;
 import display.UnoObject;
-import event.EndTurnEvent;
 import manager.PlayerManager;
 
 import java.awt.*;
@@ -67,7 +66,7 @@ public class PlayKeepMenu implements UnoObject {
                 }
             } else if (inBounds(buttonLocations[1], x, y)) {
                 UnoDisplay.setMenu(null);
-                UnoDisplay.pushEvent(new EndTurnEvent());
+                UnoDisplay.finishTurn();
             }
         }
     }
