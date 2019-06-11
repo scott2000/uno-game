@@ -23,7 +23,7 @@ public class UnoMain extends JFrame {
     private UnoMain() {
         instance = this;
 
-        add(new UnoDisplay());
+        add(new UnoPanel());
 
         setSize(800, 600);
         setMinimumSize(new Dimension(600, 480));

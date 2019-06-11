@@ -6,7 +6,7 @@ public class NormalCard extends UnoCard {
     private int color;
     private int number;
 
-    public NormalCard(int color, int number) {
+    NormalCard(int color, int number) {
         this.color = color;
         this.number = number;
     }
@@ -23,7 +23,22 @@ public class NormalCard extends UnoCard {
 
     @Override
     public int getOrderCode() {
-        return 2+color*13+number;
+        return 10+color*13+number;
+    }
+
+    @Override
+    public String encode() {
+        char n = UnoCard.encodeColor(color);
+        switch (number) {
+        case SKIP:
+            return "s"+n;
+        case REVERSE:
+            return "r"+n;
+        case DRAW_2:
+            return "d"+n;
+        default:
+            return Integer.toString(number)+n;
+        }
     }
 
     @Override

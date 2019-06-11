@@ -2,38 +2,35 @@ package menu;
 
 import card.UnoCard;
 import card.WildCard;
-import display.UnoDisplay;
-import display.UnoObject;
-import manager.PlayerManager;
+import display.UnoMenu;
+import display.UnoPanel;
 
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 
-public class ColorSelectMenu implements UnoObject {
+public class ColorSelectMenu implements UnoMenu {
     private static final int BUTTON_SIZE = 75;
 
-    private PlayerManager target;
     private WildCard card;
     private int c;
 
     private Point[] buttonLocations;
 
-    public ColorSelectMenu(PlayerManager target, WildCard card, int c) {
-        this.target = target;
+    public ColorSelectMenu(WildCard card, int c) {
         this.card = card;
         this.c = c;
     }
 
     @Override
     public void paint(Graphics2D g) {
-        int width = UnoDisplay.width;
-        int height = UnoDisplay.height;
+        int width = UnoPanel.width;
+        int height = UnoPanel.height;
 
         g.setColor(new Color(0.0f, 0.0f, 0.0f, 0.75f));
         g.fillRect(width/2-200, height/2-100, 400, 200);
         g.setColor(Color.WHITE);
         g.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        UnoDisplay.shadowTextCenter(g, "Select a color for the wild card:", width/2, height/2-80);
+        UnoPanel.shadowTextCenter(g, "Select a color for the wild card:", width/2, height/2-80);
         int xl = width/2-BUTTON_SIZE;
         int xr = width/2;
         int yt = height/2-BUTTON_SIZE+15;
@@ -62,8 +59,8 @@ public class ColorSelectMenu implements UnoObject {
                 Point p = buttonLocations[color];
                 if (x >= p.x && x < p.x+BUTTON_SIZE && y >= p.y && y < p.y+BUTTON_SIZE) {
                     card.setColor(color);
-                    UnoDisplay.setMenu(null);
-                    target.selectCard(c);
+                    UnoPanel.setMenu(null);
+                    UnoPanel.playCard(c);
                     return;
                 }
             }

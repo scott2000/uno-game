@@ -4,15 +4,19 @@ import java.awt.*;
 
 public class WildCard extends UnoCard {
     private boolean isDrawFour;
-    private int color = -1;
+    private int color;
 
-    public WildCard(boolean isDrawFour) {
+    WildCard(boolean isDrawFour) {
+        this(-1, isDrawFour);
+    }
+
+    WildCard(int color, boolean isDrawFour) {
         this.isDrawFour = isDrawFour;
+        this.color = color;
     }
 
     public void setColor(int color) {
         this.color = color;
-        invalidateCached();
     }
 
     @Override
@@ -31,9 +35,19 @@ public class WildCard extends UnoCard {
     @Override
     public int getOrderCode() {
         if (isDrawFour) {
-            return 1;
+            return 5+color;
         } else {
-            return 0;
+            return 1+color;
+        }
+    }
+
+    @Override
+    public String encode() {
+        char n = UnoCard.encodeColor(color);
+        if (isDrawFour) {
+            return "D"+n;
+        } else {
+            return "W"+n;
         }
     }
 

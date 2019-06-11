@@ -1,13 +1,19 @@
-package manager;
+package manager.local;
 
-
+import card.CardObject;
 import card.NormalCard;
 import card.UnoCard;
 import card.WildCard;
-import display.UnoDisplay;
+import display.UnoPanel;
+import manager.DeckManager;
+import manager.OpponentManager;
 
 public class ComputerManager extends OpponentManager {
     private int bestColor;
+
+    public ComputerManager() {
+        deckManager = new DeckManager();
+    }
 
     @Override
     public boolean claimsStart() {
@@ -23,20 +29,21 @@ public class ComputerManager extends OpponentManager {
      * Draw a card and play it if possible
      */
     @Override
-    public void startTurn() {
-        super.startTurn();
-        UnoDisplay.delay(500);
+    public void onTurnStart(int opponentHandSize) {
+        UnoPanel.delay(500);
+        UnoCard topOfDeck = UnoPanel.getTopOfDeck().getCard();
         int playable = -1;
         int nonWild = -1;
         int matchColor = -1;
         int[] colorCounts = new int[4];
-        for (UnoCard card : hand) {
+        for (CardObject cardObject : hand) {
+            UnoCard card = cardObject.getCard();
             if (card instanceof NormalCard) {
                 colorCounts[card.getColorCode()] += 1;
             }
         }
-        int colorOffset = UnoDisplay.random.nextInt(4);
-        int targetColor = UnoDisplay.getTopOfDeck().getColorCode();
+        int colorOffset = UnoPanel.random.nextInt(4);
+        int targetColor = topOfDeck.getColorCode();
         int maxColor = 0;
         bestColor = colorOffset;
         for (int i = colorOffset; i < 4+colorOffset; i++) {
@@ -48,10 +55,9 @@ public class ComputerManager extends OpponentManager {
             }
         }
         int nonWildCount = 0;
-        int playerCards = UnoDisplay.getOtherManager().count();
         for (int c = hand.size()-1; c >= 0; c--) {
-            UnoCard card = hand.get(c);
-            if (UnoDisplay.canPlay(card)) {
+            UnoCard card = hand.get(c).getCard();
+            if (card.canPlayOn(topOfDeck)) {
                 playable = c;
                 if (card instanceof NormalCard) {
                     int color = card.getColorCode();
@@ -66,7 +72,7 @@ public class ComputerManager extends OpponentManager {
                             break;
                         }
                     }
-                } else if (playerCards == 1 || playerCards == 2 && UnoDisplay.random.nextBoolean()){
+                } else if (opponentHandSize == 1 || opponentHandSize == 2 && UnoPanel.random.nextBoolean()){
                     ((WildCard) card).setColor(bestColor);
                     matchColor = c;
                     break;
@@ -78,31 +84,30 @@ public class ComputerManager extends OpponentManager {
             c = matchColor;
         } else if (nonWild != -1) {
             c = nonWild;
-        } else if (playable != -1 && (hand.size() <= 3 || playerCards <= 3 || UnoDisplay.random.nextInt(4) == 0)) {
-            WildCard wild = (WildCard) hand.get(playable);
+        } else if (playable != -1 && (hand.size() <= 3 || opponentHandSize <= 3 || UnoPanel.random.nextInt(4) == 0)) {
+            WildCard wild = (WildCard) hand.get(playable).getCard();
             wild.setColor(bestColor);
             c = playable;
         } else {
-            UnoDisplay.drawCardTo(true);
+            UnoPanel.drawCard();
             return;
         }
-        UnoDisplay.playCard(c);
+        UnoPanel.playCard(c);
     }
 
     @Override
-    public int addCard(UnoCard card) {
-        int c = super.addCard(card);
+    protected void onAddCard(CardObject cardObject, int c) {
         if (isTurn) {
-            if (UnoDisplay.canPlay(card)) {
+            UnoCard card = cardObject.getCard();
+            if (card.canPlayOn(UnoPanel.getTopOfDeck().getCard())) {
                 if (card instanceof WildCard) {
                     ((WildCard) card).setColor(bestColor);
                 }
-                UnoDisplay.delay(100);
-                UnoDisplay.playCard(c);
+                UnoPanel.delay(100);
+                UnoPanel.playCard(c);
             } else {
-                UnoDisplay.finishTurn();
+                UnoPanel.finishTurnEarly();
             }
         }
-        return c;
     }
 }

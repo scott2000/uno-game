@@ -1,37 +1,46 @@
 package manager;
 
-import card.UnoCard;
-import display.UnoObject;
+import card.CardObject;
 
 import java.util.ArrayList;
 
-public abstract class HandManager implements UnoObject {
-    ArrayList<UnoCard> hand = new ArrayList<>();
-    boolean isTurn = false;
-
-    public abstract void update(long time);
+public class HandManager {
+    public ArrayList<CardObject> hand = new ArrayList<>();
+    public boolean isTurn = false;
 
     public void reset() {
         hand.clear();
         isTurn = false;
     }
 
-    public void startTurn() {
-        isTurn = true;
-    }
+    protected void onTurnStart(int opponentHandSize) {}
 
-    public void endTurn() {
-        isTurn = false;
-    }
+    protected void onAddCard(CardObject cardObject, int c) {}
 
-    public int addCard(UnoCard card) {
+    protected void onRemoveCard(CardObject cardObject, int c) {}
+
+    public final void addCard(CardObject card) {
+        for (CardObject handCard : hand) {
+            handCard.startAnimating();
+        }
         int c = hand.size();
         hand.add(card);
-        return c;
+        onAddCard(card, c);
     }
 
-    public UnoCard takeCard(int c) {
-        return hand.remove(c);
+    public final CardObject removeCard(int c) {
+        CardObject cardObject = hand.remove(c);
+        onRemoveCard(cardObject, c);
+        return cardObject;
+    }
+
+    public final void startTurn(int opponentHandSize) {
+        isTurn = true;
+        onTurnStart(opponentHandSize);
+    }
+
+    public final void endTurn() {
+        isTurn = false;
     }
 
     public final int count() {
