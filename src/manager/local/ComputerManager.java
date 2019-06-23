@@ -12,12 +12,23 @@ public class ComputerManager extends OpponentManager {
     private int bestColor;
 
     public ComputerManager() {
-        deckManager = new DeckManager();
+        deckManager = new DeckManager("computer");
     }
 
     @Override
-    public boolean claimsStart() {
-        return false;
+    public void reset() {
+        super.reset();
+        deckManager.startGame();
+    }
+
+    @Override
+    public boolean playerCanStart() {
+        return true;
+    }
+
+    @Override
+    public UnoCard drawVisibleCard() {
+        return deckManager.draw();
     }
 
     /*
@@ -31,7 +42,7 @@ public class ComputerManager extends OpponentManager {
     @Override
     public void onTurnStart(int opponentHandSize) {
         UnoPanel.delay(500);
-        UnoCard topOfDeck = UnoPanel.getTopOfDeck().getCard();
+        UnoCard topOfDeck = UnoPanel.getTopOfDeck();
         int playable = -1;
         int nonWild = -1;
         int matchColor = -1;
@@ -79,27 +90,24 @@ public class ComputerManager extends OpponentManager {
                 }
             }
         }
-        int c;
         if (matchColor != -1) {
-            c = matchColor;
+            UnoPanel.playCard(matchColor);
         } else if (nonWild != -1) {
-            c = nonWild;
+            UnoPanel.playCard(nonWild);
         } else if (playable != -1 && (hand.size() <= 3 || opponentHandSize <= 3 || UnoPanel.random.nextInt(4) == 0)) {
             WildCard wild = (WildCard) hand.get(playable).getCard();
             wild.setColor(bestColor);
-            c = playable;
+            UnoPanel.playCard(playable);
         } else {
             UnoPanel.drawCard();
-            return;
         }
-        UnoPanel.playCard(c);
     }
 
     @Override
     protected void onAddCard(CardObject cardObject, int c) {
         if (isTurn) {
             UnoCard card = cardObject.getCard();
-            if (card.canPlayOn(UnoPanel.getTopOfDeck().getCard())) {
+            if (card.canPlayOn(UnoPanel.getTopOfDeck())) {
                 if (card instanceof WildCard) {
                     ((WildCard) card).setColor(bestColor);
                 }
@@ -109,5 +117,15 @@ public class ComputerManager extends OpponentManager {
                 UnoPanel.finishTurnEarly();
             }
         }
+    }
+
+    @Override
+    public void noEventsInQueue() {
+        deckManager.saveGame();
+    }
+
+    @Override
+    public void gameOver() {
+        deckManager.deleteSave();
     }
 }

@@ -24,11 +24,15 @@ public abstract class UnoCard implements Comparable<UnoCard> {
 
     static final int ORDER_CODE_COUNT = 10 + 4*13;
 
+    public static final int MAX_POWER_DIFF = 20;
+
     public abstract int getColorCode();
     public abstract int getNumberCode();
     public abstract int getOrderCode();
+    public abstract int getPowerCode();
 
     public abstract String encode();
+    public abstract boolean canBecome(UnoCard card);
 
     public abstract boolean canPlay(int color, int number);
     public abstract boolean isNumeric();
@@ -39,7 +43,7 @@ public abstract class UnoCard implements Comparable<UnoCard> {
     public abstract String getText();
     public abstract String getShortText();
 
-    public boolean canPlayOn(UnoCard topOfDeck) {
+    public final boolean canPlayOn(UnoCard topOfDeck) {
         return canPlay(topOfDeck.getColorCode(), topOfDeck.getNumberCode());
     }
 
@@ -106,7 +110,7 @@ public abstract class UnoCard implements Comparable<UnoCard> {
     public static UnoCard decode(String encoded) {
         char[] encodedChars = encoded.toCharArray();
         if (encodedChars.length != 2) {
-            throw new IllegalArgumentException("encoded cards must be 2 characters long");
+            throw new IllegalArgumentException("encoded cards must be 2 characters long (found: "+encoded+")");
         }
         char kind = encodedChars[0];
         int color = decodeColor(encodedChars[1]);
@@ -162,7 +166,12 @@ public abstract class UnoCard implements Comparable<UnoCard> {
     }
 
     @Override
+    public int hashCode() {
+        return getOrderCode();
+    }
+
+    @Override
     public boolean equals(Object o) {
-        return (o instanceof UnoCard) && this.compareTo((UnoCard) o) == 0;
+        return o instanceof UnoCard && compareTo((UnoCard) o) == 0;
     }
 }

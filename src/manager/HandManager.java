@@ -2,11 +2,16 @@ package manager;
 
 import card.CardObject;
 
+import java.awt.*;
 import java.util.ArrayList;
+import java.util.List;
 
-public class HandManager {
-    public ArrayList<CardObject> hand = new ArrayList<>();
+public abstract class HandManager {
+    public List<CardObject> hand = new ArrayList<>();
     public boolean isTurn = false;
+
+    public abstract void update(long time);
+    public abstract void paint(Graphics2D g);
 
     public void reset() {
         hand.clear();
@@ -19,12 +24,14 @@ public class HandManager {
 
     protected void onRemoveCard(CardObject cardObject, int c) {}
 
-    public final void addCard(CardObject card) {
-        for (CardObject handCard : hand) {
-            handCard.startAnimating();
-        }
+    public final void addCard(CardObject card, boolean animate) {
         int c = hand.size();
         hand.add(card);
+        if (animate) {
+            for (CardObject handCard : hand) {
+                handCard.startAnimating();
+            }
+        }
         onAddCard(card, c);
     }
 

@@ -27,6 +27,21 @@ public class NormalCard extends UnoCard {
     }
 
     @Override
+    public int getPowerCode() {
+        switch (number) {
+        case 0:
+            return 1;
+        case SKIP:
+        case REVERSE:
+            return 5;
+        case DRAW_2:
+            return 10;
+        default:
+            return 0;
+        }
+    }
+
+    @Override
     public String encode() {
         char n = UnoCard.encodeColor(color);
         switch (number) {
@@ -39,6 +54,15 @@ public class NormalCard extends UnoCard {
         default:
             return Integer.toString(number)+n;
         }
+    }
+
+    @Override
+    public boolean canBecome(UnoCard card) {
+        if (card instanceof NormalCard) {
+            NormalCard normalCard = (NormalCard) card;
+            return normalCard.color == color && normalCard.number == number;
+        }
+        return false;
     }
 
     @Override

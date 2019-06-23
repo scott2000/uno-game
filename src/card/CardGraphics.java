@@ -34,6 +34,10 @@ public final class CardGraphics {
 
         double centerX = WIDTH/2;
         double scaleFactor = Math.abs(flipAnimate);
+
+        boolean noAntialias = Math.round(x) == x && Math.round(y) == y && scaleFactor == 1;
+        if (noAntialias) UnoPanel.setNoAntialias(g);
+
         if (scaleFactor != 1) {
             scaleFactor = Math.pow(scaleFactor, 0.75);
             transform.translate(x+centerX, y);
@@ -50,19 +54,19 @@ public final class CardGraphics {
                 g.setColor(new Color(0.0f, 0.0f, 0.0f, 0.5f));
                 g.draw(new RoundRectangle2D.Double(x+centerX*(1-scaleFactor), y, WIDTH*scaleFactor, HEIGHT, ARC*scaleFactor, ARC));
             }
-            return;
-        }
+        } else {
+            g.drawImage(getCardImage(card), transform, null);
 
-        g.drawImage(getCardImage(card), transform, null);
+            if (darken) {
+                g.drawImage(SHADE_IMAGE, transform, null);
+            }
 
-        if (darken) {
-            g.drawImage(SHADE_IMAGE, transform, null);
+            if (scaleFactor != 1) {
+                g.setColor(card.getColor().darker().darker());
+                g.draw(new RoundRectangle2D.Double(x+centerX*(1-scaleFactor), y, WIDTH*scaleFactor, HEIGHT, ARC*scaleFactor, ARC));
+            }
         }
-
-        if (scaleFactor != 1) {
-            g.setColor(card.getColor().darker().darker());
-            g.draw(new RoundRectangle2D.Double(x+centerX*(1-scaleFactor), y, WIDTH*scaleFactor, HEIGHT, ARC*scaleFactor, ARC));
-        }
+        if (noAntialias) UnoPanel.setAntialias(g);
     }
 
     public static void paintBlank(Graphics2D g, double x, double y) {

@@ -35,9 +35,18 @@ public class WildCard extends UnoCard {
     @Override
     public int getOrderCode() {
         if (isDrawFour) {
-            return 5+color;
+            return 6+color;
         } else {
             return 1+color;
+        }
+    }
+
+    @Override
+    public int getPowerCode() {
+        if (isDrawFour) {
+            return 16;
+        } else {
+            return 9;
         }
     }
 
@@ -49,6 +58,15 @@ public class WildCard extends UnoCard {
         } else {
             return "W"+n;
         }
+    }
+
+    @Override
+    public boolean canBecome(UnoCard card) {
+        if (card instanceof WildCard) {
+            WildCard wildCard = (WildCard) card;
+            return wildCard.isDrawFour == isDrawFour && (color == -1 || wildCard.color == color);
+        }
+        return false;
     }
 
     @Override
