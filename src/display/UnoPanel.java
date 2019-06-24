@@ -343,7 +343,7 @@ public class UnoPanel extends JPanel implements MouseListener {
             public void start() {
                 discard.add(topOfDeck.getCard());
                 HandManager target = current();
-                topOfDeck = target.removeCard(c);
+                topOfDeck = target.removeCard(c, true);
                 UnoCard card = topOfDeck.getCard();
                 if (target.count() == 0) {
                     endGame();
@@ -359,7 +359,6 @@ public class UnoPanel extends JPanel implements MouseListener {
                 } else {
                     finishTurn();
                 }
-                topOfDeck.startAnimating();
             }
 
             @Override

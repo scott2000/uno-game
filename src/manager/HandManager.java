@@ -43,7 +43,12 @@ public abstract class HandManager {
         onAddCard(card, c);
     }
 
-    public final CardObject removeCard(int c) {
+    public final CardObject removeCard(int c, boolean animate) {
+        if (animate) {
+            for (CardObject handCard : hand) {
+                handCard.startAnimating();
+            }
+        }
         CardObject cardObject = hand.remove(c);
         onRemoveCard(cardObject, c);
         return cardObject;
