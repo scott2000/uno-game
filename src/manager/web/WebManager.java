@@ -4,6 +4,7 @@ import card.CardObject;
 import card.UnoCard;
 import display.UnoMain;
 import display.UnoPanel;
+import manager.DeckManager;
 import manager.OpponentManager;
 
 import javax.swing.*;
@@ -87,7 +88,7 @@ public abstract class WebManager extends OpponentManager {
 
     abstract Socket start();
 
-    // opponent actions must be handled as events due to possible timing desynchronization
+    // opponent actions should usually be handled as events due to possible timing desynchronization
     public void handleMessage(Message message) {
         switch (message.kind) {
         case "drawCard":
@@ -118,6 +119,26 @@ public abstract class WebManager extends OpponentManager {
                 UnoPanel.finishTurnEarly();
             });
             return;
+        case "reveal":
+            synchronized (UnoPanel.getInstance()) {
+                UnoCard[] newHand = DeckManager.loadCards(message.contents);
+                if (newHand.length == hand.size()) {
+                    for (int i = 0; i < newHand.length; i++) {
+                        CardObject cardObject = hand.get(i);
+                        UnoCard oldCard = cardObject.getCard();
+                        UnoCard newCard = newHand[i];
+                        if (oldCard == null || oldCard.canBecome(newCard)) {
+                            cardObject.setCard(newCard);
+                        } else {
+                            invalid("Opponent tried to reveal "+oldCard+" as "+newCard+".");
+                        }
+                    }
+                    sortHandAndAnimateForReveal();
+                } else {
+                    invalid("Opponent tried to reveal hand of different size.");
+                }
+            }
+            return;
         case "invalid":
             error("Opponent believes move was invalid.");
             return;
@@ -125,7 +146,9 @@ public abstract class WebManager extends OpponentManager {
             synchronized (this) {
                 isClosed = true;
             }
-            UnoPanel.pushEvent(UnoMain::opponentClosed);
+            synchronized (UnoPanel.getInstance()) {
+                UnoMain.opponentClosed();
+            }
             return;
         default:
             handlerFor(message.kind).addMessage(message.contents);
@@ -191,7 +214,7 @@ public abstract class WebManager extends OpponentManager {
 
     private void error(String msg) {
         System.out.flush();
-        System.err.println("[!] "+msg);
+        System.err.println("! "+msg);
         UnoMain.desynchronized();
     }
 

@@ -1,5 +1,6 @@
 package manager.web;
 
+import card.CardObject;
 import card.UnoCard;
 import display.UnoMain;
 import display.UnoPanel;
@@ -104,6 +105,15 @@ public class ServerManager extends WebManager {
         message.append(';');
         message.append(playerWillStart ? '0' : '1');
         write("start", message.toString());
+    }
+
+    @Override
+    public void reveal(List<CardObject> cardObjects) {
+        if (cardObjects.isEmpty()) {
+            sortHandAndAnimateForReveal();
+        } else {
+            write("reveal", DeckManager.saveCardObjects(cardObjects));
+        }
     }
 
     @Override

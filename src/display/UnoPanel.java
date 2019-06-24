@@ -44,10 +44,13 @@ public class UnoPanel extends JPanel implements MouseListener {
     private static PlayerManager player = new PlayerManager();
     private static OpponentManager opponent;
 
+    private static UnoPanel instance;
+
     UnoPanel(OpponentManager opponent) {
         UnoPanel.opponent = opponent;
         addMouseListener(this);
         setBackground(Color.WHITE);
+        instance = this;
     }
 
     void onClose() {
@@ -110,7 +113,6 @@ public class UnoPanel extends JPanel implements MouseListener {
         eventQueue.clear();
         topOfDeck = null;
         gameOverTimer = 0;
-        firstTurnEnded = false;
         updateWHD(false);
         player.reset();
         opponent.reset();
@@ -136,8 +138,24 @@ public class UnoPanel extends JPanel implements MouseListener {
         return gameRunning;
     }
 
+    public static boolean isGameOver() {
+        return gameOverTimer != 0;
+    }
+
     public static UnoCard getTopOfDeck() {
         return topOfDeck.getCard();
+    }
+
+    public static UnoPanel getInstance() {
+        return instance;
+    }
+
+    public static int getTimeToNewGame() {
+        if (gameOverTimer == 0) {
+            return 0;
+        } else {
+            return Math.max(0, (int) (gameOverTimer-System.currentTimeMillis()+999)/1000);
+        }
     }
 
     public static List<UnoCard> takeDiscardPile() {
@@ -451,9 +469,11 @@ public class UnoPanel extends JPanel implements MouseListener {
 
     private static void endGame() {
         pushEvent(() -> {
-            gameOverTimer = System.currentTimeMillis()+5000;
+            gameOverTimer = System.currentTimeMillis()+10_000;
             gameRunning = false;
+            firstTurnEnded = false;
             opponent.gameOver();
+            opponent.reveal(player.hand);
         });
     }
 

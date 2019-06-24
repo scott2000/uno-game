@@ -1,12 +1,20 @@
 package manager;
 
+import card.CardGraphics;
 import card.CardObject;
+import card.UnoCard;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public abstract class HandManager {
+    protected static final int SEP_X = CardGraphics.WIDTH + 5;
+    protected static final int SEP_Y = CardGraphics.HEIGHT*2/3;
+
+    static final int SEP_Y_HIDDEN = CardGraphics.HEIGHT/3;
+
     public List<CardObject> hand = new ArrayList<>();
     public boolean isTurn = false;
 
@@ -52,5 +60,18 @@ public abstract class HandManager {
 
     public final int count() {
         return hand.size();
+    }
+
+    protected final void sortHandAndAnimateForReveal() {
+        UnoCard[] cards = new UnoCard[hand.size()];
+        for (int i = 0; i < cards.length; i++) {
+            cards[i] = hand.get(i).getCard();
+        }
+        Arrays.sort(cards);
+        for (int i = 0; i < cards.length; i++) {
+            CardObject cardObject = hand.get(i);
+            cardObject.setCard(cards[i]);
+            cardObject.startAnimating();
+        }
     }
 }

@@ -12,10 +12,6 @@ public final class CardGraphics {
     public static final int WIDTH = 75;
     public static final int HEIGHT = 105;
 
-    public static final int SEP_X = WIDTH + 5;
-    public static final int SEP_Y_COMPUTER = HEIGHT/3;
-    public static final int SEP_Y_PLAYER = HEIGHT*2/3;
-
     private static final int ARC = 7;
 
     private static final BufferedImage BACK_IMAGE;

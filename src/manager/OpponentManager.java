@@ -1,6 +1,5 @@
 package manager;
 
-import card.CardGraphics;
 import card.CardObject;
 import card.UnoCard;
 import display.UnoPanel;
@@ -17,15 +16,18 @@ public abstract class OpponentManager extends HandManager {
 
     @Override
     public void update(long time) {
-        int columns = Math.max((UnoPanel.width-15)/CardGraphics.SEP_X, 3);
-        int indent = (UnoPanel.width - Math.min(columns, hand.size())*CardGraphics.SEP_X + 5)/2;
+        int columns = Math.max((UnoPanel.width-15)/SEP_X, 3);
+        int indent = (UnoPanel.width - Math.min(columns, hand.size())*SEP_X + 5)/2;
+
+        boolean gameOver = UnoPanel.isGameOver();
+        int sepY = gameOver && !hand.isEmpty() && hand.get(0).getCard() != null ? SEP_Y : SEP_Y_HIDDEN;
 
         for (int c = 0; c < hand.size(); c++) {
             int row = c/columns;
             int column = c%columns;
-            float x = indent + CardGraphics.SEP_X*column;
-            float y = 10 + CardGraphics.SEP_Y_COMPUTER*row;
-            hand.get(c).update(x, y, false, time);
+            float x = indent + SEP_X*column;
+            float y = 10 + sepY*row;
+            hand.get(c).update(x, y, gameOver, time);
         }
     }
 
@@ -53,6 +55,8 @@ public abstract class OpponentManager extends HandManager {
     public void newGame(UnoCard topOfDeck, UnoCard[] hand) {}
 
     public void restore(UnoCard topOfDeck, UnoCard[] hand, int playerSize, List<UnoCard> discard, boolean playerWillStart) {}
+
+    public void reveal(List<CardObject> cardObjects) {}
 
     public void noEventsInQueue() {}
 

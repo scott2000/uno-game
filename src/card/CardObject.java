@@ -2,7 +2,7 @@ package card;
 
 import java.awt.*;
 
-public class CardObject {
+public final class CardObject {
     private static final double MOVE_SPEED = 1.0;
     private static final double FLIP_SPEED = 0.005;
 
@@ -27,7 +27,7 @@ public class CardObject {
     }
 
     public void setFlipped(boolean flipped) {
-        flipAnimate = flipped ? 1 : -1;
+        flipAnimate = card != null && flipped ? 1 : -1;
     }
 
     public void update(double targetX, double targetY, boolean flipped, long time) {
@@ -51,7 +51,9 @@ public class CardObject {
                     isAnimating = true;
                 }
             }
-            if (flipped && flipAnimate != 1.0) {
+            if (card == null) {
+                flipAnimate = -1.0;
+            } else if (flipped && flipAnimate != 1.0) {
                 isAnimating = true;
                 flipAnimate = Math.min(flipAnimate + FLIP_SPEED * time, 1.0);
             } else if (!flipped && flipAnimate != -1.0) {

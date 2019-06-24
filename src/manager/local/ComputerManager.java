@@ -8,6 +8,8 @@ import display.UnoPanel;
 import manager.DeckManager;
 import manager.OpponentManager;
 
+import java.util.List;
+
 public class ComputerManager extends OpponentManager {
     private int bestColor;
 
@@ -117,6 +119,11 @@ public class ComputerManager extends OpponentManager {
                 UnoPanel.finishTurnEarly();
             }
         }
+    }
+
+    @Override
+    public void reveal(List<CardObject> cardObjects) {
+        sortHandAndAnimateForReveal();
     }
 
     @Override

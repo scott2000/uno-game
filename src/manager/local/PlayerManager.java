@@ -18,7 +18,7 @@ public class PlayerManager extends HandManager {
     private ArrayList<Integer> sortedIndices = new ArrayList<>();
 
     private void updateCR() {
-        columns = Math.max((UnoPanel.width-15)/CardGraphics.SEP_X, 3);
+        columns = Math.max((UnoPanel.width-15)/SEP_X, 3);
         rows = (hand.size()-1)/columns;
     }
 
@@ -46,30 +46,37 @@ public class PlayerManager extends HandManager {
     @Override
     public void update(long time) {
         updateCR();
-        int indent = (UnoPanel.width - Math.min(columns, hand.size())*CardGraphics.SEP_X + 5)/2;
+        int indent = (UnoPanel.width - Math.min(columns, hand.size())*SEP_X + 5)/2;
 
         for (int cc = 0; cc < sortedIndices.size(); cc++) {
             int row = cc/columns;
             int column = cc%columns;
-            float x = indent + CardGraphics.SEP_X*column;
-            float y = UnoPanel.height - CardGraphics.SEP_Y_PLAYER*(rows-row) - CardGraphics.HEIGHT - 10;
+            float x = indent + SEP_X*column;
+            float y = UnoPanel.height - SEP_Y *(rows-row) - CardGraphics.HEIGHT - 10;
             hand.get(sortedIndices.get(cc)).update(x, y, true, time);
         }
     }
 
     @Override
     public void paint(Graphics2D g) {
-        if (isTurn) {
-            updateCR();
-            g.setColor(UnoPanel.getTopOfDeck().getColor());
-            g.setFont(new Font("SansSerif", Font.BOLD, 24));
-            UnoPanel.shadowTextCenter(g, "Your Turn", UnoPanel.width/2, UnoPanel.height - CardGraphics.SEP_Y_PLAYER*rows - CardGraphics.HEIGHT - 30);
+        int seconds = UnoPanel.getTimeToNewGame();
+        if (seconds != 0) {
+            showText(g, "New Game in "+seconds);
+        } else if (isTurn) {
+            showText(g, "Your Turn");
         }
 
         for (int c : sortedIndices) {
             CardObject cardObject = hand.get(c);
             cardObject.paint(g, UnoPanel.hasEvent() || !isTurn || !cardObject.getCard().canPlayOn(UnoPanel.getTopOfDeck()));
         }
+    }
+
+    private void showText(Graphics2D g, String text) {
+        updateCR();
+        g.setColor(UnoPanel.getTopOfDeck().getColor());
+        g.setFont(new Font("SansSerif", Font.BOLD, 24));
+        UnoPanel.shadowTextCenter(g, text, UnoPanel.width/2, UnoPanel.height - SEP_Y *rows - CardGraphics.HEIGHT - 30);
     }
 
     @Override
