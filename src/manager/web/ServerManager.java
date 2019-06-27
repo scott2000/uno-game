@@ -20,7 +20,7 @@ public class ServerManager extends WebManager {
             socket = new ServerSocket(port);
         } catch (IOException e) {
             e.printStackTrace();
-            Uno.failConnect();
+            Uno.failServerStart();
             return;
         }
         System.out.printf("server(%d)\n", port);

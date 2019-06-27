@@ -100,12 +100,10 @@ public class Uno extends JFrame {
                         try {
                             Files.write(lastAddressPath, setup.getBytes("utf-8"));
                         } catch (IOException ignored) {}
-                        try {
-                            int port = parts.length == 1 ? WebManager.DEFAULT_PORT : Integer.parseInt(parts[0]);
-                            boolean server = ip.equalsIgnoreCase("server");
-                            UnoPanel.setOpponent(server ? new ServerManager(port) : new ClientManager(ip, port));
-                            break mode;
-                        } catch (Exception ignored) {}
+                        int port = parts.length == 1 ? WebManager.DEFAULT_PORT : Integer.parseInt(parts[0]);
+                        boolean server = ip.equalsIgnoreCase("server");
+                        UnoPanel.setOpponent(server ? new ServerManager(port) : new ClientManager(ip, port));
+                        break mode;
                     }
                     JOptionPane.showMessageDialog(
                             null,
@@ -172,6 +170,10 @@ public class Uno extends JFrame {
         dialog.setLocationRelativeTo(null);
         dialog.setModalityType(JDialog.ModalityType.MODELESS);
         dialog.setVisible(true);
+    }
+
+    public static void failServerStart() {
+        asyncErrorDialog("Failed to start server. Is the game already running?", "Failed to Start Server");
     }
 
     public static void failConnect() {

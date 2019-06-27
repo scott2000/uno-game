@@ -291,7 +291,9 @@ public abstract class WebManager extends OpponentManager {
     private String read() {
         String result = null;
         try {
-            result = input.readLine();
+            if (input != null) {
+                result = input.readLine();
+            }
         } catch (IOException ignored) {}
         if (result == null) {
             synchronized (this) {
@@ -304,8 +306,11 @@ public abstract class WebManager extends OpponentManager {
     }
 
     private synchronized void write(String text) {
-        output.println(text);
-        if (output.checkError() || socket.isClosed()) disconnect();
+        if (output != null) {
+            output.println(text);
+            if (!output.checkError() && !socket.isClosed()) return;
+        }
+        disconnect();
     }
 
     final void write(String kind, String contents) {
