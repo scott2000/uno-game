@@ -2,7 +2,6 @@ package menu;
 
 import card.UnoCard;
 import card.WildCard;
-import display.UnoMenu;
 import display.UnoPanel;
 
 import java.awt.*;

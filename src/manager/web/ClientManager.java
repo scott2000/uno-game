@@ -18,6 +18,9 @@ public class ClientManager extends WebManager {
         this.host = host;
         this.port = port;
         System.out.printf("client(%s, %d)\n", host, port);
+        enableDynamicFor("start");
+        enableDynamicFor("clientCanStart");
+        enableDynamicFor("card");
         initialize();
     }
 
@@ -42,7 +45,6 @@ public class ClientManager extends WebManager {
     @Override
     public void reset() {
         super.reset();
-        write("reset");
         String[] resetParams = waitFor("start").split(";");
         String[] cardStrings = resetParams[1].split(" ");
         UnoCard topOfDeck = UnoCard.decode(cardStrings[0]);

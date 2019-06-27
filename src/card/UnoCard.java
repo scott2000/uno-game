@@ -40,6 +40,7 @@ public abstract class UnoCard implements Comparable<UnoCard> {
     public abstract int cardDraws();
 
     public abstract Color getColor();
+    public abstract Color getTextColor();
     public abstract String getText();
     public abstract String getShortText();
 
@@ -74,6 +75,21 @@ public abstract class UnoCard implements Comparable<UnoCard> {
             return Color.GREEN.darker();
         case BLUE:
             return new Color(0, 127, 255);
+        default:
+            throw new IllegalStateException("error: invalid color code");
+        }
+    }
+
+    public static Color getTextColor(int color) {
+        switch (color) {
+        case RED:
+            return new Color(255, 128, 128);
+        case YELLOW:
+            return new Color(255, 227, 128);
+        case GREEN:
+            return new Color(139, 204, 139);
+        case BLUE:
+            return new Color(128, 191, 255);
         default:
             throw new IllegalStateException("error: invalid color code");
         }

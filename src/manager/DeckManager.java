@@ -2,7 +2,7 @@ package manager;
 
 import card.CardObject;
 import card.UnoCard;
-import display.UnoMain;
+import display.Uno;
 import display.UnoPanel;
 
 import javax.swing.*;
@@ -16,6 +16,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class DeckManager {
+    private static final char VERSION_PREFIX = '#';
+
     public static final int CARDS_PER_DECK = 108;
     public static final int CARDS_PER_HAND = 7;
     public static final int INITIAL_DECK_COUNT = CARDS_PER_DECK - CARDS_PER_HAND*2 - 1;
@@ -26,9 +28,9 @@ public class DeckManager {
     private List<UnoCard> deck;
 
     public DeckManager(String gameType) {
-        saveFile = new File(UnoMain.UNO_DIRECTORY, gameType+"Game");
+        saveFile = new File(Uno.UNO_DIRECTORY, gameType+"Game");
         savePath = saveFile.toPath();
-        if (saveFile.exists()) {
+        if (canLoadGame()) {
             int result = JOptionPane.showOptionDialog(
                     null,
                     "Do you want to resume the previous game or start a new one?",
@@ -98,6 +100,7 @@ public class DeckManager {
 
     public void saveGame() {
         ArrayList<String> saveData = new ArrayList<>();
+        saveData.add(VERSION_PREFIX+Integer.toString(Uno.VERSION));
         saveData.add(saveCards(deck));
         UnoPanel.saveState(saveData);
         try {
@@ -105,15 +108,30 @@ public class DeckManager {
         } catch (IOException ignored) {}
     }
 
+    private boolean isCorrectVersionInfo(String versionInfo) {
+        return !versionInfo.isEmpty() && versionInfo.charAt(0) == VERSION_PREFIX && Uno.isCompatible(versionInfo.substring(1));
+    }
+
+    private boolean canLoadGame() {
+        try {
+            if (saveFile.exists()) {
+                List<String> loadData = Files.readAllLines(savePath, Charset.forName("utf-8"));
+                return isCorrectVersionInfo(loadData.get(0));
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
     private boolean loadGame() {
         try {
             List<String> loadData = Files.readAllLines(savePath, Charset.forName("utf-8"));
-            deck = new ArrayList<>(Arrays.asList(loadCards(loadData.get(0))));
-            UnoPanel.loadState(loadData);
-            return true;
-        } catch (IOException ignored) {
-            return false;
-        }
+            if (isCorrectVersionInfo(loadData.get(0))) {
+                deck = new ArrayList<>(Arrays.asList(loadCards(loadData.get(1))));
+                UnoPanel.loadState(loadData);
+                return true;
+            }
+        } catch (IOException ignored) {}
+        return false;
     }
 
     public static String saveCards(List<UnoCard> cards) {

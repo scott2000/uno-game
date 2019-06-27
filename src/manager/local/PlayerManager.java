@@ -18,7 +18,7 @@ public class PlayerManager extends HandManager {
     private ArrayList<Integer> sortedIndices = new ArrayList<>();
 
     private void updateCR() {
-        columns = Math.max((UnoPanel.width-15)/SEP_X, 3);
+        columns = Math.max((UnoPanel.width - 2* MARGIN)/SEP_X, 3);
         rows = (hand.size()-1)/columns;
     }
 
@@ -52,13 +52,13 @@ public class PlayerManager extends HandManager {
             int row = cc/columns;
             int column = cc%columns;
             float x = indent + SEP_X*column;
-            float y = UnoPanel.height - SEP_Y *(rows-row) - CardGraphics.HEIGHT - 10;
+            float y = UnoPanel.height - SEP_Y *(rows-row) - CardGraphics.HEIGHT - MARGIN;
             hand.get(sortedIndices.get(cc)).update(x, y, true, time);
         }
     }
 
     @Override
-    public void paint(Graphics2D g) {
+    public int paint(Graphics2D g) {
         int seconds = UnoPanel.getTimeToNewGame();
         if (seconds != 0) {
             showText(g, "New Game in "+seconds);
@@ -70,13 +70,15 @@ public class PlayerManager extends HandManager {
             CardObject cardObject = hand.get(c);
             cardObject.paint(g, UnoPanel.hasEvent() || !isTurn || !cardObject.getCard().canPlayOn(UnoPanel.getTopOfDeck()));
         }
+
+        return UnoPanel.height - SEP_Y*rows - CardGraphics.HEIGHT - MARGIN;
     }
 
     private void showText(Graphics2D g, String text) {
         updateCR();
         g.setColor(UnoPanel.getTopOfDeck().getColor());
         g.setFont(new Font("SansSerif", Font.BOLD, 24));
-        UnoPanel.shadowTextCenter(g, text, UnoPanel.width/2, UnoPanel.height - SEP_Y *rows - CardGraphics.HEIGHT - 30);
+        UnoPanel.shadowTextCenter(g, text, UnoPanel.width/2, UnoPanel.height - SEP_Y*rows - CardGraphics.HEIGHT - MARGIN - 20);
     }
 
     @Override

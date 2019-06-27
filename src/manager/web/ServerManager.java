@@ -2,7 +2,7 @@ package manager.web;
 
 import card.CardObject;
 import card.UnoCard;
-import display.UnoMain;
+import display.Uno;
 import display.UnoPanel;
 import manager.DeckManager;
 
@@ -20,7 +20,7 @@ public class ServerManager extends WebManager {
             socket = new ServerSocket(port);
         } catch (IOException e) {
             e.printStackTrace();
-            UnoMain.failConnect();
+            Uno.failConnect();
             return;
         }
         System.out.printf("server(%d)\n", port);
@@ -28,24 +28,9 @@ public class ServerManager extends WebManager {
     }
 
     @Override
-    public void handleMessage(Message message) {
-        switch (message.kind) {
-        case "reset":
-            if (UnoPanel.isGameRunning()) {
-                UnoPanel.requestRestore();
-                return;
-            } // otherwise fallthrough
-        default:
-            super.handleMessage(message);
-        }
-    }
-
-    @Override
     protected Socket start() {
         try {
-            Socket newSocket = socket.accept();
-            socket.setSoTimeout(30_000);
-            return newSocket;
+            return socket.accept();
         } catch (IOException e) {
             return null;
         }
@@ -54,7 +39,6 @@ public class ServerManager extends WebManager {
     @Override
     public void reset() {
         super.reset();
-        waitFor("reset");
         deckManager.startGame();
     }
 
@@ -112,12 +96,12 @@ public class ServerManager extends WebManager {
         if (cardObjects.isEmpty()) {
             sortHandAndAnimateForReveal();
         } else {
-            write("reveal", DeckManager.saveCardObjects(cardObjects));
+            write(OPTIONAL+"reveal", DeckManager.saveCardObjects(cardObjects));
         }
     }
 
     @Override
-    public void noEventsInQueue() {
+    public void canSave() {
         deckManager.saveGame();
     }
 

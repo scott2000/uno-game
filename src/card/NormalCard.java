@@ -95,6 +95,11 @@ public class NormalCard extends UnoCard {
     }
 
     @Override
+    public Color getTextColor() {
+        return UnoCard.getTextColor(color);
+    }
+
+    @Override
     public String getText() {
         return UnoCard.getNumberText(number);
     }

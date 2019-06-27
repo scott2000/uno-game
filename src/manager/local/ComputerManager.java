@@ -127,7 +127,7 @@ public class ComputerManager extends OpponentManager {
     }
 
     @Override
-    public void noEventsInQueue() {
+    public void canSave() {
         deckManager.saveGame();
     }
 

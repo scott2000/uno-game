@@ -10,16 +10,17 @@ import java.util.Arrays;
 import java.util.List;
 
 public abstract class HandManager {
+    public static final int MARGIN = 10;
+
     protected static final int SEP_X = CardGraphics.WIDTH + 5;
     protected static final int SEP_Y = CardGraphics.HEIGHT*2/3;
-
     static final int SEP_Y_HIDDEN = CardGraphics.HEIGHT/3;
 
     public List<CardObject> hand = new ArrayList<>();
     public boolean isTurn = false;
 
     public abstract void update(long time);
-    public abstract void paint(Graphics2D g);
+    public abstract int paint(Graphics2D g);
 
     public void reset() {
         hand.clear();
