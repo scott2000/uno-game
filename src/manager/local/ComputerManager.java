@@ -55,7 +55,7 @@ public class ComputerManager extends OpponentManager {
                 colorCounts[card.getColorCode()] += 1;
             }
         }
-        int colorOffset = UnoPanel.random.nextInt(4);
+        int colorOffset = UnoPanel.RANDOM.nextInt(4);
         int targetColor = topOfDeck.getColorCode();
         int maxColor = 0;
         bestColor = colorOffset;
@@ -85,7 +85,7 @@ public class ComputerManager extends OpponentManager {
                             break;
                         }
                     }
-                } else if (opponentHandSize == 1 || opponentHandSize == 2 && UnoPanel.random.nextBoolean()){
+                } else if (opponentHandSize == 1 || opponentHandSize == 2 && UnoPanel.RANDOM.nextBoolean()){
                     ((WildCard) card).setColor(bestColor);
                     matchColor = c;
                     break;
@@ -96,7 +96,7 @@ public class ComputerManager extends OpponentManager {
             UnoPanel.playCard(matchColor);
         } else if (nonWild != -1) {
             UnoPanel.playCard(nonWild);
-        } else if (playable != -1 && (hand.size() <= 3 || opponentHandSize <= 3 || UnoPanel.random.nextInt(4) == 0)) {
+        } else if (playable != -1 && (hand.size() <= 3 || opponentHandSize <= 3 || UnoPanel.RANDOM.nextInt(4) == 0)) {
             WildCard wild = (WildCard) hand.get(playable).getCard();
             wild.setColor(bestColor);
             UnoPanel.playCard(playable);

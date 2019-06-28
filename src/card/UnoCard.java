@@ -15,6 +15,8 @@ public abstract class UnoCard implements Comparable<UnoCard> {
     public static final int COLOR_MIN = RED;
     public static final int COLOR_MAX = BLUE;
 
+    public static final Color DEFAULT_TEXT_COLOR = new Color(255, 128, 128);
+
     static final int NO_NUMBER = -1;
     static final int SKIP = 10;
     static final int REVERSE = 11;
@@ -40,9 +42,38 @@ public abstract class UnoCard implements Comparable<UnoCard> {
     public abstract int cardDraws();
 
     public abstract Color getColor();
-    public abstract Color getTextColor();
     public abstract String getText();
     public abstract String getShortText();
+
+    public final Color getTextColor() {
+        switch (getColorCode()) {
+        case RED:
+            return DEFAULT_TEXT_COLOR;
+        case YELLOW:
+            return new Color(255, 227, 128);
+        case GREEN:
+            return new Color(176, 255, 176);
+        case BLUE:
+            return new Color(128, 191, 255);
+        default:
+            throw new IllegalStateException("error: invalid color code");
+        }
+    }
+
+    public final Color getCircleColor() {
+        switch (getColorCode()) {
+        case RED:
+            return new Color(255, 204, 204);
+        case YELLOW:
+            return new Color(255, 223, 128);
+        case GREEN:
+            return new Color(204, 255, 204);
+        case BLUE:
+            return new Color(204, 230, 255);
+        default:
+            throw new IllegalStateException("error: invalid color code");
+        }
+    }
 
     public final boolean canPlayOn(UnoCard topOfDeck) {
         return canPlay(topOfDeck.getColorCode(), topOfDeck.getNumberCode());
@@ -61,7 +92,7 @@ public abstract class UnoCard implements Comparable<UnoCard> {
             deck.add(new WildCard(false));
             deck.add(new WildCard(true));
         }
-        Collections.shuffle(deck, UnoPanel.random);
+        Collections.shuffle(deck, UnoPanel.RANDOM);
         return deck;
     }
 
@@ -75,21 +106,6 @@ public abstract class UnoCard implements Comparable<UnoCard> {
             return Color.GREEN.darker();
         case BLUE:
             return new Color(0, 127, 255);
-        default:
-            throw new IllegalStateException("error: invalid color code");
-        }
-    }
-
-    public static Color getTextColor(int color) {
-        switch (color) {
-        case RED:
-            return new Color(255, 128, 128);
-        case YELLOW:
-            return new Color(255, 227, 128);
-        case GREEN:
-            return new Color(139, 204, 139);
-        case BLUE:
-            return new Color(128, 191, 255);
         default:
             throw new IllegalStateException("error: invalid color code");
         }

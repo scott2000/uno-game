@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Chat {
+    private static final char CURSOR_CHAR = '\uFEFF';
     private static final int TEXT_MARGIN = 5;
     private static final long HIDE_DELAY = 5000;
 
@@ -37,29 +38,30 @@ public class Chat {
             String current = "";
             for (char c : message.toCharArray()) {
                 String next = current+c;
-                if (c != '\b' && m.stringWidth(next) > space) {
-                    if (c == ' ') {
-                        lines.add(current);
-                        current = "";
-                    } else {
-                        int lastSpace = current.lastIndexOf(' ');
-                        if (lastSpace == -1) {
-                            String hyphen = current+'-';
-                            if (m.stringWidth(hyphen) > space) {
-                                int s = current.length()-1;
-                                lines.add(current.substring(0, s)+'-');
-                                current = next.substring(s);
-                            } else {
-                                lines.add(hyphen);
-                                current = Character.toString(c);
-                            }
-                        } else {
-                            lines.add(current.substring(0, lastSpace));
-                            current = next.substring(lastSpace+1);
-                        }
-                    }
-                } else {
+                if (c == CURSOR_CHAR || m.stringWidth(next) <= space) {
                     current = next;
+                } else if (c == ' ') {
+                    lines.add(current);
+                    current = "";
+                } else {
+                    int lastSpace = current.lastIndexOf(' ');
+                    if (lastSpace != -1) {
+                        lines.add(current.substring(0, lastSpace));
+                        current = next.substring(lastSpace+1);
+                    } else if (Character.isLetterOrDigit(c)) {
+                        String hyphen = current+'-';
+                        if (m.stringWidth(hyphen) > space) {
+                            int s = current.length() - (current.endsWith(Character.toString(CURSOR_CHAR)) ? 2 : 1);
+                            lines.add(current.substring(0, s)+'-');
+                            current = next.substring(s);
+                        } else {
+                            lines.add(hyphen);
+                            current = Character.toString(c);
+                        }
+                    } else {
+                        lines.add(current);
+                        current = Character.toString(c);
+                    }
                 }
             }
             lines.add(current);
@@ -134,7 +136,7 @@ public class Chat {
         if (buffer == null) {
             buffer = Character.toString(c);
             cursor = 1;
-        } else {
+        } else if (c != CURSOR_CHAR) {
             buffer = buffer.substring(0, cursor)+c+buffer.substring(cursor);
             cursor++;
         }
@@ -200,7 +202,7 @@ public class Chat {
             if (message.isPlayer) {
                 Color color = UnoPanel.getTextColor();
                 if (color == null) {
-                    g.setColor(UnoCard.getTextColor(0));
+                    g.setColor(UnoCard.DEFAULT_TEXT_COLOR);
                 } else {
                     g.setColor(color);
                 }
@@ -212,7 +214,7 @@ public class Chat {
             for (int line = lines.size()-1; line >= 0; line--, y -= textSepY) {
                 if (y <= textMinY) break outer;
                 String text = lines.get(line);
-                int cursorIndex = text.indexOf('\b');
+                int cursorIndex = text.indexOf(CURSOR_CHAR);
                 if (cursorIndex == -1) {
                     UnoPanel.shadowText(g, lines.get(line), textMinX, y, 0.7f);
                 } else {
@@ -225,9 +227,9 @@ public class Chat {
                     }
                     Color color = g.getColor();
                     g.setColor(Color.DARK_GRAY);
-                    g.fillRect(textMinX+offset, y-m.getAscent(), 3, m.getAscent()+m.getDescent());
+                    g.fillRect(textMinX+offset-1, y-m.getAscent(), 3, m.getAscent()+m.getDescent());
                     g.setColor(color);
-                    g.fillRect(textMinX+offset+1, y-m.getAscent()+1, 1, m.getAscent()+m.getDescent()-2);
+                    g.fillRect(textMinX+offset, y-m.getAscent()+1, 1, m.getAscent()+m.getDescent()-2);
                 }
             }
         }
@@ -242,7 +244,7 @@ public class Chat {
     private Message get(int index) {
         if (buffer != null) {
             if (index == 0) {
-                return new Message(buffer.substring(0, cursor)+'\b'+buffer.substring(cursor), true);
+                return new Message(buffer.substring(0, cursor)+CURSOR_CHAR+buffer.substring(cursor), true);
             } else {
                 index -= 1;
             }

@@ -103,15 +103,6 @@ public class WildCard extends UnoCard {
     }
 
     @Override
-    public Color getTextColor() {
-        if (color == -1) {
-            return Color.LIGHT_GRAY;
-        } else {
-            return UnoCard.getTextColor(color);
-        }
-    }
-
-    @Override
     public String getText() {
         if (isDrawFour) {
             return "Draw four";

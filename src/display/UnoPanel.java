@@ -16,6 +16,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.geom.Ellipse2D;
 import java.util.*;
 import java.util.List;
 
@@ -28,9 +29,13 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         }
     }
 
-    private static final long REFRESH_DELAY = 5;
+    private static final long REFRESH_FREQUENCY = 5;
+    private static final long CIRCLE_EXPAND_TIME = 250;
 
-    public static final Random random = new Random();
+    private static final int CIRCLE_INITIAL_RADIUS = CardGraphics.WIDTH;
+    private static final int CIRCLE_EXPAND_RADIUS = 100;
+
+    public static final Random RANDOM = new Random();
 
     public static int width;
     public static int height;
@@ -41,8 +46,6 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
     private static Chat chat = null;
 
     private static CardObject topOfDeck = null;
-    private static boolean isInitialized = false;
-
     private static long gameOverTimer = 0;
 
     private static Point drawPileLocation;
@@ -53,6 +56,11 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
 
     private static PlayerManager player = new PlayerManager();
     private static OpponentManager opponent;
+
+    private static float circleOpacityRoot = 0.0f;
+    private static Color circleColor;
+
+    private boolean isInitialized = false;
 
     UnoPanel() {
         addMouseListener(this);
@@ -84,6 +92,13 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                             if (topOfDeck != null) {
                                 topOfDeck.update(topOfDeckLocation.x, topOfDeckLocation.y, true, time);
                             }
+
+                            if (circleColor != null) {
+                                circleOpacityRoot -= (float) time / CIRCLE_EXPAND_TIME;
+                                if (circleOpacityRoot <= 0.0f) {
+                                    circleColor = null;
+                                }
+                            }
                         }
 
                         if (gameOverTimer == 0) {
@@ -102,7 +117,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                             repaint(0);
                         }
                     }
-                    Thread.sleep(REFRESH_DELAY);
+                    Thread.sleep(REFRESH_FREQUENCY);
                 }
             } catch (InterruptedException ignored) {}
         });
@@ -188,7 +203,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                     ((WildCard) card).setColor(-1);
                 }
             }
-            Collections.shuffle(deck, random);
+            Collections.shuffle(deck, RANDOM);
             return deck;
         }
     }
@@ -224,16 +239,29 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         setHints(g);
         updateWHD(true);
 
-        int dy = drawPileLocation.y;
-        int dx = width/2+5;
-        for (int i = Math.max(0, discard.size()-4); i < discard.size(); i++) {
-            CardGraphics.paint(g, discard.get(i), false, dx, dy, 1.0);
-            dx += 1;
-            dy -= 1;
+        if (circleColor != null) {
+            float opacity = circleOpacityRoot*circleOpacityRoot;
+            g.setColor(new Color(circleColor.getRed(), circleColor.getGreen(), circleColor.getBlue(), (int) (opacity*255)));
+            int discardPileSize = Math.min(4, discard.size());
+            float centerX = topOfDeckLocation.x + discardPileSize + CardGraphics.WIDTH/2f;
+            float centerY = topOfDeckLocation.y + discardPileSize + CardGraphics.HEIGHT/2f;
+            float radius = CIRCLE_EXPAND_RADIUS + opacity*(CIRCLE_INITIAL_RADIUS - CIRCLE_EXPAND_RADIUS);
+            float diameter = 2*radius;
+            g.fill(new Ellipse2D.Float(
+                    centerX-radius,
+                    centerY-radius,
+                    diameter,
+                    diameter));
         }
 
-        int shownCards = Math.min(4, opponent.cardsInDeck());
-        for (int i = 0; i < shownCards; i++) {
+        for (int i = Math.max(0, discard.size()-4); i < discard.size(); i++) {
+            CardGraphics.paint(g, discard.get(i), false, topOfDeckLocation.x, topOfDeckLocation.y, 1.0);
+            topOfDeckLocation.x += 1;
+            topOfDeckLocation.y -= 1;
+        }
+
+        int drawPileStart = drawPileLocation.x;
+        for (int i = 0, shownCards = Math.min(4, opponent.cardsInDeck()); i < shownCards; i++) {
             CardGraphics.paintBlank(g, drawPileLocation.x, drawPileLocation.y);
             drawPileLocation.x += 1;
             drawPileLocation.y -= 1;
@@ -248,7 +276,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         int maxY = player.paint(g);
 
         if (chat != null) {
-            chat.paint(g, drawPileLocation.x-shownCards, minY, maxY);
+            chat.paint(g, drawPileStart, minY, maxY);
         }
 
         if (menu != null) {
@@ -361,13 +389,18 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         if (player.isTurn) {
             opponent.playerPlayCard(c, player.hand.get(c).getCard());
         }
+        waitForCircle();
         pushEvent(new Event() {
             @Override
             public void start() {
-                discard.add(topOfDeck.getCard());
+                UnoCard oldTopOfDeck = topOfDeck.getCard();
+                discard.add(oldTopOfDeck);
                 HandManager target = current();
                 topOfDeck = target.removeCard(c, true);
                 UnoCard card = topOfDeck.getCard();
+                if (card.getColorCode() != oldTopOfDeck.getColorCode()) {
+                    startCircle();
+                }
                 if (target.count() == 0) {
                     endGame();
                 } else if (card.isSkip()) {
@@ -417,6 +450,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                 return UnoPanel.topOfDeck.doneAnimating();
             }
         });
+        startCircle();
         pushEvent(() -> startGame(playerWillStart));
     }
 
@@ -468,6 +502,25 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         cardObject.setPosition(drawPileLocation.x, drawPileLocation.y);
         target.addCard(cardObject, true);
         return cardObject;
+    }
+
+    private static void waitForCircle() {
+        pushEvent(new Event() {
+            @Override
+            public void start() {}
+
+            @Override
+            public boolean isDone() {
+                return circleOpacityRoot < 0.5f;
+            }
+        });
+    }
+
+    private static void startCircle() {
+        pushEvent(() -> {
+            circleOpacityRoot = 1.0f;
+            circleColor = topOfDeck.getCard().getCircleColor();
+        });
     }
 
     private static void restartTurn() {

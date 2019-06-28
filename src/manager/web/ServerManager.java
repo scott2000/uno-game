@@ -44,7 +44,7 @@ public class ServerManager extends WebManager {
 
     @Override
     public boolean playerCanStart() {
-        boolean start = UnoPanel.random.nextBoolean();
+        boolean start = UnoPanel.RANDOM.nextBoolean();
         write("clientCanStart", start ? "0" : "1");
         return start;
     }
