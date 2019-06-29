@@ -17,16 +17,14 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.RoundRectangle2D;
 import java.util.*;
 import java.util.List;
 
 public class UnoPanel extends JPanel implements MouseListener, KeyListener {
-    @FunctionalInterface
-    public interface Event {
+    private interface Event {
         void start();
-        default boolean isDone() {
-            return true;
-        }
+        boolean isDone();
     }
 
     private static final long REFRESH_FREQUENCY = 5;
@@ -34,6 +32,9 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
 
     private static final int CIRCLE_INITIAL_RADIUS = CardGraphics.WIDTH;
     private static final int CIRCLE_EXPAND_RADIUS = 100;
+
+    private static final int END_TURN_WIDTH = CardGraphics.WIDTH;
+    private static final int END_TURN_HEIGHT = 40;
 
     public static final Random RANDOM = new Random();
 
@@ -50,6 +51,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
 
     private static Point drawPileLocation;
     private static Point topOfDeckLocation;
+    private static Point endTurnButton;
 
     private static ArrayDeque<Event> eventQueue = new ArrayDeque<>();
     private static Event currentEvent = null;
@@ -59,6 +61,9 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
 
     private static float circleOpacityRoot = 0.0f;
     private static Color circleColor;
+
+    private static boolean hasDrawn;
+    private static long endRecommendedTime = 0;
 
     private boolean isInitialized = false;
 
@@ -75,9 +80,9 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
 
     private void startMainLoop() {
         Thread mainLoop = new Thread(() -> {
-            try {
-                long lastTime = System.currentTimeMillis();
-                while (true) {
+            long lastTime = System.currentTimeMillis();
+            while (true) {
+                try {
                     synchronized (this) {
                         long currentTime = System.currentTimeMillis();
                         long time = currentTime-lastTime;
@@ -102,15 +107,43 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                         }
 
                         if (gameOverTimer == 0) {
-                            if (currentEvent != null && currentEvent.isDone()) {
-                                currentEvent = null;
-                            }
-                            if (currentEvent == null && !eventQueue.isEmpty()) {
+                            while (true) {
+                                if (currentEvent != null) {
+                                    if (currentEvent.isDone()) {
+                                        currentEvent = null;
+                                    } else {
+                                        break;
+                                    }
+                                }
+                                if (eventQueue.isEmpty()) {
+                                    break;
+                                }
                                 currentEvent = eventQueue.removeFirst();
+                                ArrayDeque<Event> oldQueue = eventQueue;
+                                eventQueue = new ArrayDeque<>();
                                 currentEvent.start();
+                                if (eventQueue.isEmpty()) {
+                                    eventQueue = oldQueue;
+                                } else {
+                                    for (Event event : oldQueue) {
+                                        eventQueue.addLast(event);
+                                    }
+                                }
                             }
-                        } else if (currentTime >= gameOverTimer) {
-                            reset();
+                        } else if (currentTime >= gameOverTimer && gameOverTimer != -1) {
+                            if (opponent.fastReset()) {
+                                reset();
+                            } else {
+                                gameOverTimer = -1;
+                                Thread resetThread = new Thread(() -> {
+                                    opponent.willReset();
+                                    synchronized (this) {
+                                        reset();
+                                    }
+                                });
+                                resetThread.setName("resetThread");
+                                resetThread.start();
+                            }
                         }
 
                         if (time != 0) {
@@ -118,18 +151,19 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                         }
                     }
                     Thread.sleep(REFRESH_FREQUENCY);
-                }
-            } catch (InterruptedException ignored) {}
+                } catch (InterruptedException ignored) {}
+            }
         });
         mainLoop.setName("mainLoop");
         mainLoop.start();
     }
 
-    private static void reset() {
+    private void reset() {
         discard.clear();
         eventQueue.clear();
         topOfDeck = null;
         gameOverTimer = 0;
+        hasDrawn = false;
         player.reset();
         opponent.reset();
     }
@@ -148,6 +182,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
 
     static void setOpponent(OpponentManager opponent) {
         UnoPanel.opponent = opponent;
+        opponent.willReset();
         opponent.reset();
     }
 
@@ -155,8 +190,31 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         return player.isTurn ? player : opponent;
     }
 
-    public static void pushEvent(Event event) {
+    private static HandManager other() {
+        return player.isTurn ? opponent : player;
+    }
+
+    private static void pushEvent(Event event) {
         eventQueue.addLast(event);
+    }
+
+    public static void pushEvent(String kind, Runnable event) {
+        pushEvent(new Event() {
+            @Override
+            public void start() {
+                event.run();
+            }
+
+            @Override
+            public boolean isDone() {
+                return true;
+            }
+
+            @Override
+            public String toString() {
+                return kind;
+            }
+        });
     }
 
     public static boolean hasEvent() {
@@ -171,19 +229,19 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         return gameOverTimer != 0;
     }
 
+    public static boolean canDraw() {
+        return !hasDrawn;
+    }
+
     public static UnoCard getTopOfDeck() {
         return topOfDeck.getCard();
     }
 
-    static Color getTextColor() {
-        return topOfDeck == null ? null : topOfDeck.getCard().getTextColor();
-    }
-
     public static int getTimeToNewGame() {
         if (gameOverTimer == 0) {
-            return 0;
+            return -1;
         } else {
-            return Math.max(0, (int) (gameOverTimer-System.currentTimeMillis()+999)/1000);
+            return Math.max(0, (int) ((gameOverTimer-System.currentTimeMillis()+999)/1000));
         }
     }
 
@@ -205,6 +263,14 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
             }
             Collections.shuffle(deck, RANDOM);
             return deck;
+        }
+    }
+
+    public static float getHighlightDist(long time) {
+        if (time == 0) {
+            return 0.0f;
+        } else {
+            return (float) (2 - 1.5f*Math.cos((System.currentTimeMillis()-time)%2000/1000.0*Math.PI));
         }
     }
 
@@ -239,12 +305,54 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         setHints(g);
         updateWHD(true);
 
+        for (int i = Math.max(0, discard.size()-4); i < discard.size(); i++) {
+            CardGraphics.paint(g, discard.get(i), false, 0, topOfDeckLocation.x, topOfDeckLocation.y, 1.0);
+            topOfDeckLocation.x += 1;
+            topOfDeckLocation.y -= 1;
+        }
+
+        int drawPileStartX = drawPileLocation.x;
+        for (int i = 0, shownCards = Math.min(4, opponent.cardsInDeck()); i < shownCards; i++) {
+            CardGraphics.paintBlank(g, drawPileLocation.x, drawPileLocation.y);
+            drawPileLocation.x += 1;
+            drawPileLocation.y -= 1;
+        }
+        CardGraphics.paintBlank(g, drawPileLocation.x, drawPileLocation.y);
+
+        if (player.isTurn && hasDrawn) {
+            Color color = topOfDeck.getCard().getColor();
+            endTurnButton = new Point(topOfDeckLocation.x + CardGraphics.WIDTH + HandManager.MARGIN, (height - END_TURN_HEIGHT)/2);
+            if (endRecommendedTime != 0) {
+                float dist = getHighlightDist(endRecommendedTime);
+                RoundRectangle2D rect = new RoundRectangle2D.Double(
+                        endTurnButton.x-dist,
+                        endTurnButton.y-dist,
+                        END_TURN_WIDTH+dist*2+1,
+                        END_TURN_HEIGHT+dist*2+1,
+                        CardGraphics.HIGHLIGHT_ARC,
+                        CardGraphics.HIGHLIGHT_ARC);
+                g.setColor(withAlpha(color, 0.5f));
+                g.fill(rect);
+            }
+            g.setColor(color);
+            g.fillRoundRect(endTurnButton.x, endTurnButton.y, END_TURN_WIDTH, END_TURN_HEIGHT, CardGraphics.ARC, CardGraphics.ARC);
+            g.setColor(Color.BLACK);
+            Stroke stroke = g.getStroke();
+            g.setStroke(new BasicStroke(1.5f));
+            g.drawRoundRect(endTurnButton.x, endTurnButton.y, END_TURN_WIDTH, END_TURN_HEIGHT, CardGraphics.ARC, CardGraphics.ARC);
+            g.setStroke(stroke);
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("SansSerif", Font.BOLD, 12));
+            shadowTextCenter(g, "End Turn", endTurnButton.x + END_TURN_WIDTH/2.0f, endTurnButton.y + END_TURN_HEIGHT/2.0f);
+        } else {
+            endTurnButton = null;
+        }
+
         if (circleColor != null) {
             float opacity = circleOpacityRoot*circleOpacityRoot;
-            g.setColor(new Color(circleColor.getRed(), circleColor.getGreen(), circleColor.getBlue(), (int) (opacity*255)));
-            int discardPileSize = Math.min(4, discard.size());
-            float centerX = topOfDeckLocation.x + discardPileSize + CardGraphics.WIDTH/2f;
-            float centerY = topOfDeckLocation.y + discardPileSize + CardGraphics.HEIGHT/2f;
+            g.setColor(withAlpha(circleColor, opacity));
+            float centerX = topOfDeckLocation.x + CardGraphics.WIDTH/2f;
+            float centerY = topOfDeckLocation.y + CardGraphics.HEIGHT/2f;
             float radius = CIRCLE_EXPAND_RADIUS + opacity*(CIRCLE_INITIAL_RADIUS - CIRCLE_EXPAND_RADIUS);
             float diameter = 2*radius;
             g.fill(new Ellipse2D.Float(
@@ -254,20 +362,6 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                     diameter));
         }
 
-        for (int i = Math.max(0, discard.size()-4); i < discard.size(); i++) {
-            CardGraphics.paint(g, discard.get(i), false, topOfDeckLocation.x, topOfDeckLocation.y, 1.0);
-            topOfDeckLocation.x += 1;
-            topOfDeckLocation.y -= 1;
-        }
-
-        int drawPileStart = drawPileLocation.x;
-        for (int i = 0, shownCards = Math.min(4, opponent.cardsInDeck()); i < shownCards; i++) {
-            CardGraphics.paintBlank(g, drawPileLocation.x, drawPileLocation.y);
-            drawPileLocation.x += 1;
-            drawPileLocation.y -= 1;
-        }
-        CardGraphics.paintBlank(g, drawPileLocation.x, drawPileLocation.y);
-
         if (topOfDeck != null) {
             topOfDeck.paint(g, false);
         }
@@ -276,7 +370,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         int maxY = player.paint(g);
 
         if (chat != null) {
-            chat.paint(g, drawPileStart, minY, maxY);
+            chat.paint(g, drawPileStartX, minY, maxY);
         }
 
         if (menu != null) {
@@ -329,12 +423,21 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         g.drawString(text, x, y);
     }
 
+    public static Color withAlpha(Color color, float alpha) {
+        return new Color(color.getRed(), color.getGreen(), color.getBlue(), (int) (alpha*color.getAlpha()));
+    }
+
+    private static boolean playerShouldEndTurn() {
+        return !player.shouldPlayDrawnCard(opponent.count() == 1);
+    }
+
     public static void saveState(List<String> saveData) {
         saveData.add(topOfDeck.getCard().encode());
         saveData.add(DeckManager.saveCards(discard));
         saveData.add(DeckManager.saveCardObjects(player.hand));
         saveData.add(DeckManager.saveCardObjects(opponent.hand));
         saveData.add(player.isTurn ? "1" : "0");
+        saveData.add(hasDrawn ? "1" : "0");
     }
 
     public static void loadState(List<String> loadData) {
@@ -343,7 +446,8 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         UnoCard[] playerHand = DeckManager.loadCards(loadData.get(4));
         UnoCard[] opponentHand = DeckManager.loadCards(loadData.get(5));
         boolean playerWillStart = loadData.get(6).equals("1");
-        restore(topOfDeck, discard, playerHand, opponentHand, playerWillStart);
+        boolean hasDrawn = loadData.get(7).equals("1");
+        restore(topOfDeck, discard, playerHand, opponentHand, playerWillStart, hasDrawn);
     }
 
     public static void delay(long time) {
@@ -358,6 +462,11 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
             @Override
             public boolean isDone() {
                 return System.currentTimeMillis() >= timer;
+            }
+
+            @Override
+            public String toString() {
+                return "delay("+time+")";
             }
         });
     }
@@ -375,12 +484,20 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
 
             @Override
             public void start() {
+                hasDrawn = true;
                 cardObject = drawCardDirectlyTo(card, current());
+                endRecommendedTime = player.isTurn && playerShouldEndTurn() ? System.currentTimeMillis() : 0;
+                opponent.canSave();
             }
 
             @Override
             public boolean isDone() {
                 return cardObject.doneAnimating();
+            }
+
+            @Override
+            public String toString() {
+                return "drawCard";
             }
         });
     }
@@ -389,7 +506,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         if (player.isTurn) {
             opponent.playerPlayCard(c, player.hand.get(c).getCard());
         }
-        waitForCircle();
+        pushEvent(waitForCircle());
         pushEvent(new Event() {
             @Override
             public void start() {
@@ -398,13 +515,16 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                 HandManager target = current();
                 topOfDeck = target.removeCard(c, true);
                 UnoCard card = topOfDeck.getCard();
-                if (card.getColorCode() != oldTopOfDeck.getColorCode()) {
-                    startCircle();
-                }
                 if (target.count() == 0) {
+                    startCircle();
                     endGame();
-                } else if (card.isSkip()) {
-                    for (int i = 0; i < card.cardDraws(); i++) {
+                    return;
+                } else if (card.getColorCode() != oldTopOfDeck.getColorCode()) {
+                    startCircle();
+                    changeChatColor();
+                }
+                if (card.isSkip()) {
+                    for (int i = 0, cardDraws = card.cardDraws(); i < cardDraws; i++) {
                         if (player.isTurn) {
                             drawCardTo(opponent.drawHiddenCard(), opponent);
                         } else {
@@ -421,12 +541,18 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
             public boolean isDone() {
                 return topOfDeck.doneAnimating();
             }
+
+            @Override
+            public String toString() {
+                return "playCard("+c+")";
+            }
         });
     }
 
     public static void newGame(UnoCard topOfDeck, UnoCard[] playerHand, UnoCard[] opponentHand) {
         opponent.newGame(topOfDeck, opponentHand);
         final boolean playerWillStart = opponent.playerCanStart();
+        delay(250);
         for (int i = 0; i < DeckManager.CARDS_PER_HAND; i++) {
             if (playerWillStart) {
                 drawCardTo(opponentHand[i], opponent);
@@ -449,13 +575,21 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
             public boolean isDone() {
                 return UnoPanel.topOfDeck.doneAnimating();
             }
+
+            @Override
+            public String toString() {
+                return "flipOverCard("+topOfDeck+")";
+            }
         });
-        startCircle();
-        pushEvent(() -> startGame(playerWillStart));
+        pushEvent("startGame", () -> {
+            startCircle();
+            changeChatColor();
+            startGame(playerWillStart);
+        });
     }
 
-    public static void restore(UnoCard topOfDeck, List<UnoCard> discard, UnoCard[] playerHand, UnoCard[] opponentHand, boolean playerWillStart) {
-        opponent.restore(topOfDeck, opponentHand, playerHand.length, discard, playerWillStart);
+    public static void restore(UnoCard topOfDeck, List<UnoCard> discard, UnoCard[] playerHand, UnoCard[] opponentHand, boolean playerWillStart, boolean hasDrawn) {
+        opponent.restore(topOfDeck, opponentHand, playerHand.length, discard, playerWillStart, hasDrawn);
         UnoPanel.topOfDeck = new CardObject();
         UnoPanel.topOfDeck.setCard(topOfDeck);
         UnoPanel.discard = discard;
@@ -470,6 +604,11 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
             cardObject.setCard(card);
             opponent.addCard(cardObject, false);
         }
+        if (chat != null) {
+            chat.setColor(topOfDeck.getTextColor());
+        }
+        endRecommendedTime = playerWillStart && hasDrawn && playerShouldEndTurn() ? System.currentTimeMillis() : 0;
+        UnoPanel.hasDrawn = hasDrawn;
         startGame(playerWillStart);
     }
 
@@ -477,7 +616,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         if (player.isTurn) {
             opponent.playerFinishTurnEarly();
         }
-        pushEvent(UnoPanel::finishTurn);
+        pushEvent("finishTurn", UnoPanel::finishTurn);
     }
 
     private static void drawCardTo(UnoCard card, HandManager target) {
@@ -493,6 +632,11 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
             public boolean isDone() {
                 return cardObject.doneAnimating();
             }
+
+            @Override
+            public String toString() {
+                return (target instanceof PlayerManager ? "player" : "opponent")+".drawCard"+(card == null ? "" : card);
+            }
         });
     }
 
@@ -504,8 +648,8 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         return cardObject;
     }
 
-    private static void waitForCircle() {
-        pushEvent(new Event() {
+    private static Event waitForCircle() {
+        return new Event() {
             @Override
             public void start() {}
 
@@ -513,27 +657,39 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
             public boolean isDone() {
                 return circleOpacityRoot < 0.5f;
             }
-        });
+
+            @Override
+            public String toString() {
+                return "waitForCircle";
+            }
+        };
     }
 
     private static void startCircle() {
-        pushEvent(() -> {
+        pushEvent("startCircle", () -> {
             circleOpacityRoot = 1.0f;
             circleColor = topOfDeck.getCard().getCircleColor();
         });
     }
 
+    private static void changeChatColor() {
+        if (chat != null) {
+            pushEvent("changeChatColor", () -> chat.changeColor(topOfDeck.getCard().getTextColor()));
+        }
+    }
+
     private static void restartTurn() {
-        pushEvent(() -> {
+        pushEvent("restartTurn", () -> {
             HandManager current = current();
             current.endTurn();
-            current.startTurn(opponent.count());
+            hasDrawn = false;
+            current.startTurn(other().count());
             opponent.canSave();
         });
     }
 
     private static void endGame() {
-        pushEvent(() -> {
+        pushEvent("endGame", () -> {
             gameOverTimer = System.currentTimeMillis()+10_000;
             opponent.gameOver();
             opponent.reveal(player.hand);
@@ -551,9 +707,11 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
     private static void finishTurn() {
         if (player.isTurn) {
             player.endTurn();
+            hasDrawn = false;
             opponent.startTurn(player.count());
         } else {
             opponent.endTurn();
+            hasDrawn = false;
             player.startTurn(opponent.count());
         }
         opponent.canSave();
@@ -566,13 +724,19 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
     public void mousePressed(MouseEvent e) {
         synchronized (this) {
             if (currentEvent == null) {
-                pushEvent(() -> {
-                    int x = e.getX();
-                    int y = e.getY();
+                int x = e.getX();
+                int y = e.getY();
+                pushEvent("click("+x+", "+y+")", () -> {
                     if (menu != null) {
-                        menu.click(x, y);
+                        if (!menu.click(x, y)) {
+                            menu = null;
+                        }
                     } else if (drawPileLocation != null && player.isTurn) {
-                        player.click(x, y, drawPileLocation);
+                        if (!player.click(x, y, drawPileLocation) && hasDrawn && endTurnButton != null
+                                && x >= endTurnButton.x && x <= endTurnButton.x+END_TURN_WIDTH
+                                && y >= endTurnButton.y && y <= endTurnButton.y+END_TURN_HEIGHT) {
+                            finishTurnEarly();
+                        }
                     }
                 });
             }
@@ -600,7 +764,11 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
 
     @Override
     public void keyPressed(KeyEvent e) {
-        if (chat != null) chat.press(e.getKeyCode());
+        if (e.getKeyCode() == KeyEvent.VK_ESCAPE && menu != null) {
+            menu = null;
+        } else if (chat != null) {
+            chat.press(e.getKeyCode());
+        }
     }
 
     @Override

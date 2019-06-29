@@ -73,6 +73,10 @@ public class ComputerManager extends OpponentManager {
             if (card.canPlayOn(topOfDeck)) {
                 playable = c;
                 if (card instanceof NormalCard) {
+                    if (opponentHandSize <= 2 && card.cardDraws() != 0) {
+                        matchColor = c;
+                        break;
+                    }
                     int color = card.getColorCode();
                     int count = colorCounts[color];
                     if (count > nonWildCount) {
@@ -129,6 +133,11 @@ public class ComputerManager extends OpponentManager {
     @Override
     public void canSave() {
         deckManager.saveGame();
+    }
+
+    @Override
+    public boolean fastReset() {
+        return true;
     }
 
     @Override

@@ -77,7 +77,7 @@ public class ServerManager extends WebManager {
     }
 
     @Override
-    public void restore(UnoCard topOfDeck, UnoCard[] hand, int playerSize, List<UnoCard> discard, boolean playerWillStart) {
+    public void restore(UnoCard topOfDeck, UnoCard[] hand, int playerSize, List<UnoCard> discard, boolean playerWillStart, boolean hasDrawn) {
         StringBuilder message = new StringBuilder("restore;");
         encodeTopHand(message, topOfDeck, hand);
         message.append(';');
@@ -88,6 +88,8 @@ public class ServerManager extends WebManager {
         }
         message.append(';');
         message.append(playerWillStart ? '0' : '1');
+        message.append(';');
+        message.append(hasDrawn ? '1' : '0');
         write("start", message.toString());
     }
 

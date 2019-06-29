@@ -86,11 +86,8 @@ public abstract class WebManager extends OpponentManager {
             // it wasn't declared, so it will never be read from and can be safely created and then discarded
             handler = new MessageHandler();
             if (!optional) {
-                write("incompatible", "message"+MESSAGE_SEPARATOR+kind);
-                synchronized (this) {
-                    isClosed = true;
-                }
-                Uno.opponentIncompatible();
+                write("invalid", MESSAGE_SEPARATOR+kind);
+                if (close()) Uno.unknownMessage(kind);
             }
         }
         return handler;
@@ -109,10 +106,18 @@ public abstract class WebManager extends OpponentManager {
             String next;
             while ((next = read()) != null) {
                 int separatorIndex = next.indexOf(MESSAGE_SEPARATOR);
+                Message message;
                 if (separatorIndex == -1) {
-                    handleMessage(new Message(next));
+                    message = new Message(next);
                 } else {
-                    handleMessage(new Message(next.substring(0, separatorIndex), next.substring(separatorIndex+1)));
+                    message = new Message(next.substring(0, separatorIndex), next.substring(separatorIndex+1));
+                }
+                try {
+                    handleMessage(message);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    write("invalid", message.toString());
+                    Uno.invalidMessage(message);
                 }
             }
         });
@@ -141,50 +146,66 @@ public abstract class WebManager extends OpponentManager {
         Uno.failConnect();
     }
 
-    abstract Socket start();
-
-    public void reset() {
-        super.reset();
-        write("reset");
-        waitFor("reset");
-        if (!hasEstablishedVersion) {
-            invalid("Opponent did not send version information before reset.");
+    private synchronized boolean close() {
+        if (isClosed) {
+            return false;
         }
+        isClosed = true;
+        try {
+            socket.close();
+        } catch (IOException ignored) {}
+        return true;
     }
+
+    abstract Socket start();
 
     // opponent actions should usually be handled as events due to possible timing desynchronization
     private void handleMessage(Message message) {
         switch (message.kind) {
         case "drawCard":
-            UnoPanel.pushEvent(() -> {
+            UnoPanel.pushEvent("drawCard", () -> {
                 requireTurn();
-                UnoPanel.drawCard();
+                if (UnoPanel.canDraw()) {
+                    UnoPanel.drawCard();
+                } else {
+                    invalid("Opponent tried to draw a second card.");
+                }
             });
             return;
         case "playCard":
-            UnoPanel.pushEvent(() -> {
+            UnoPanel.pushEvent("playCard", () -> {
                 requireTurn();
-                String[] parts = message.contents.split(" ");
-                int c = Integer.parseInt(parts[0]);
-                if (c < 0 || c >= hand.size()) {
-                    invalid("Opponent believes their hand is a different size.");
-                    return;
-                }
-                CardObject cardObject = hand.get(c);
-                UnoCard oldCard = cardObject.getCard();
-                UnoCard newCard = UnoCard.decode(parts[1]);
-                if (oldCard == null || oldCard.canBecome(newCard)) {
-                    cardObject.setCard(newCard);
-                    UnoPanel.playCard(c);
-                } else {
-                    invalid("Opponent tried to play "+oldCard+" as "+newCard+".");
+                try {
+                    String[] parts = message.contents.split(" ");
+                    int c = Integer.parseInt(parts[0]);
+                    UnoCard newCard = UnoCard.decode(parts[1]);
+                    if (c < 0 || c >= hand.size()) {
+                        invalid("Opponent believes their hand is a different size.");
+                        return;
+                    }
+                    CardObject cardObject = hand.get(c);
+                    UnoCard oldCard = cardObject.getCard();
+                    if (oldCard == null || oldCard.canBecome(newCard)) {
+                        cardObject.setCard(newCard);
+                        UnoPanel.playCard(c);
+                    } else {
+                        invalid("Opponent tried to play "+oldCard+" as "+newCard+".");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    write("invalid", message.toString());
+                    Uno.invalidMessage(message);
                 }
             });
             return;
         case "finishTurnEarly":
-            UnoPanel.pushEvent(() -> {
+            UnoPanel.pushEvent("finishTurnEarly", () -> {
                 requireTurn();
-                UnoPanel.finishTurnEarly();
+                if (UnoPanel.canDraw()) {
+                    invalid("Opponent tried to end turn without drawing a card.");
+                } else {
+                    UnoPanel.finishTurnEarly();
+                }
             });
             return;
         case "reveal":
@@ -223,45 +244,25 @@ public abstract class WebManager extends OpponentManager {
             }
             return;
         case "version":
-            if (Uno.isCompatible(message.contents)) {
-                synchronized (this) {
-                    hasEstablishedVersion = true;
-                }
-            } else {
-                write("incompatible", "version"+MESSAGE_SEPARATOR+Uno.VERSION);
-                synchronized (this) {
-                    isClosed = true;
-                }
-                Uno.opponentIncompatible();
+            synchronized (this) {
+                hasEstablishedVersion = true;
+            }
+            if (!Uno.isCompatible(message.contents)) {
+                write("incompatible", Integer.toString(Uno.BACK_COMPAT_VERSION));
+                if (close()) Uno.opponentIncompatible(message.contents);
             }
             return;
         case "incompatible":
-            synchronized (this) {
-                isClosed = true;
-            }
-            Uno.playerIncompatible();
+            if (close()) Uno.playerIncompatible(message.contents);
             return;
         case "invalid":
-            error("Game desynchronized (according to opponent).");
+            if (close()) Uno.desynchronized();
             return;
         case "close":
-            synchronized (this) {
-                isClosed = true;
-            }
-            Uno.opponentClosed();
+            if (close()) Uno.opponentClosed();
             return;
         default:
             handlerFor(message.kind, message.optional).addMessage(message.contents);
-        }
-    }
-
-    private void disconnect() {
-        if (!isClosed) {
-            isClosed = true;
-            try {
-                socket.close();
-            } catch (IOException ignored) {}
-            Uno.disconnect();
         }
     }
 
@@ -274,13 +275,7 @@ public abstract class WebManager extends OpponentManager {
     private void error(String msg) {
         System.out.flush();
         System.err.println("! "+msg);
-        synchronized (this) {
-            isClosed = true;
-            try {
-                socket.close();
-            } catch (IOException ignored) {}
-        }
-        Uno.desynchronized();
+        if (close()) Uno.desynchronized();
     }
 
     private void invalid(String msg) {
@@ -296,21 +291,21 @@ public abstract class WebManager extends OpponentManager {
             }
         } catch (IOException ignored) {}
         if (result == null) {
-            synchronized (this) {
-                disconnect();
-            }
+            if (close()) Uno.disconnect();
         } else {
             System.out.println("> "+result);
         }
         return result;
     }
 
-    private synchronized void write(String text) {
-        if (output != null) {
-            output.println(text);
-            if (!output.checkError() && !socket.isClosed()) return;
+    private void write(String text) {
+        synchronized (this) {
+            if (output != null) {
+                output.println(text);
+                if (!output.checkError() && !socket.isClosed()) return;
+            }
         }
-        disconnect();
+        if (close()) Uno.disconnect();
     }
 
     final void write(String kind, String contents) {
@@ -343,6 +338,17 @@ public abstract class WebManager extends OpponentManager {
     @Override
     public void chat(String message) {
         write(OPTIONAL+"chat", message);
+    }
+
+    @Override
+    public void willReset() {
+        write("reset");
+        waitFor("reset");
+        synchronized (this) {
+            if (!hasEstablishedVersion) {
+                invalid("Opponent did not send version information before reset.");
+            }
+        }
     }
 
     @Override

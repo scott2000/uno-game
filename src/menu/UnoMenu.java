@@ -4,5 +4,5 @@ import java.awt.*;
 
 public interface UnoMenu {
     void paint(Graphics2D g);
-    void click(int x, int y);
+    boolean click(int x, int y);
 }

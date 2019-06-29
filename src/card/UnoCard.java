@@ -63,13 +63,13 @@ public abstract class UnoCard implements Comparable<UnoCard> {
     public final Color getCircleColor() {
         switch (getColorCode()) {
         case RED:
-            return new Color(255, 204, 204);
+            return new Color(255, 0, 0, 51);
         case YELLOW:
-            return new Color(255, 223, 128);
+            return new Color(255, 187, 0, 127);
         case GREEN:
-            return new Color(204, 255, 204);
+            return new Color(0, 255, 0, 51);
         case BLUE:
-            return new Color(204, 230, 255);
+            return new Color(0, 132, 255, 51);
         default:
             throw new IllegalStateException("error: invalid color code");
         }

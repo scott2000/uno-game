@@ -66,8 +66,9 @@ public class ClientManager extends WebManager {
                 discard.add(UnoCard.decode(discardStrings[i]));
             }
             boolean playerTurn = resetParams[3].equals("1");
+            boolean canDraw = resetParams[4].equals("1");
             cardCount = DeckManager.CARDS_PER_DECK - discardSize - playerHand.length - opponentSize - 1;
-            UnoPanel.restore(topOfDeck, discard, playerHand, new UnoCard[opponentSize], playerTurn);
+            UnoPanel.restore(topOfDeck, discard, playerHand, new UnoCard[opponentSize], playerTurn, canDraw);
             break;
         }
     }

@@ -3,8 +3,10 @@ package card;
 import java.awt.*;
 
 public final class CardObject {
+    private static final long FLIP_TIME = 200;
+
     private static final double MOVE_SPEED = 1.0;
-    private static final double FLIP_SPEED = 0.005;
+    private static final double FLIP_SPEED = 1.0/FLIP_TIME;
 
     private UnoCard card;
 
@@ -12,6 +14,7 @@ public final class CardObject {
     private double y;
     private double flipAnimate = -1.0;
     private boolean isAnimating = false;
+    private long highlightTime = 0;
 
     public UnoCard getCard() {
         return card;
@@ -28,6 +31,10 @@ public final class CardObject {
 
     public void setFlipped(boolean flipped) {
         flipAnimate = card != null && flipped ? 1 : -1;
+    }
+
+    public void setHighlighted(boolean highlighted) {
+        highlightTime = highlighted ? System.currentTimeMillis() - (long) ((1-flipAnimate)*FLIP_TIME) : 0;
     }
 
     public void update(double targetX, double targetY, boolean flipped, long time) {
@@ -68,6 +75,7 @@ public final class CardObject {
 
     public void startAnimating() {
         isAnimating = true;
+        highlightTime = 0;
     }
 
     public boolean doneAnimating() {
@@ -87,6 +95,6 @@ public final class CardObject {
     }
 
     public void paint(Graphics2D g, boolean darken) {
-        CardGraphics.paint(g, card, darken, x, y, flipAnimate);
+        CardGraphics.paint(g, card, darken, highlightTime, x, y, flipAnimate);
     }
 }

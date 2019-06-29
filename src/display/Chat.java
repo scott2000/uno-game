@@ -13,15 +13,23 @@ public class Chat {
     private static final char CURSOR_CHAR = '\uFEFF';
     private static final int TEXT_MARGIN = 5;
     private static final long HIDE_DELAY = 5000;
+    private static final long FADE_TIME = 1000;
+
+    private static final int HISTORY_POWER = 7;
+    private static final int HISTORY_MASK = ~(-1 << HISTORY_POWER);
 
     private String buffer = null;
     private int cursor = 0;
-    private Message[] history = new Message[64];
+    private Message[] history = new Message[1 << HISTORY_POWER];
     private int start = 0;
     private long visibleTime = 0;
 
     private String name;
     private String opponentName = "Opponent";
+
+    private Color currentColor = UnoCard.DEFAULT_TEXT_COLOR;
+    private Color newColor;
+    private long colorTime;
 
     private class Message {
         final String message;
@@ -48,7 +56,7 @@ public class Chat {
                     if (lastSpace != -1) {
                         lines.add(current.substring(0, lastSpace));
                         current = next.substring(lastSpace+1);
-                    } else if (Character.isLetterOrDigit(c)) {
+                    } else if (Character.isLetterOrDigit(c) && Character.isLetterOrDigit(current.charAt(current.length()-1))) {
                         String hyphen = current+'-';
                         if (m.stringWidth(hyphen) > space) {
                             int s = current.length() - (current.endsWith(Character.toString(CURSOR_CHAR)) ? 2 : 1);
@@ -90,6 +98,32 @@ public class Chat {
         add(new Message(message, false));
     }
 
+    void setColor(Color color) {
+        currentColor = color;
+        newColor = null;
+    }
+
+    void changeColor(Color color) {
+        newColor = color;
+        colorTime = System.currentTimeMillis();
+    }
+
+    private Color getColor() {
+        if (newColor != null) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime < colorTime+FADE_TIME) {
+                float opacity = Math.min(currentTime-colorTime, FADE_TIME)/(float) FADE_TIME;
+                return new Color(
+                        (int) (currentColor.getRed() + (newColor.getRed() - currentColor.getRed())*opacity),
+                        (int) (currentColor.getGreen() + (newColor.getGreen() - currentColor.getGreen())*opacity),
+                        (int) (currentColor.getBlue() + (newColor.getBlue() - currentColor.getBlue())*opacity));
+            }
+            currentColor = newColor;
+            newColor = null;
+        }
+        return currentColor;
+    }
+
     void press(int code) {
         if (buffer == null) {
             switch (code) {
@@ -113,7 +147,7 @@ public class Chat {
                 buffer = null;
                 break;
             case KeyEvent.VK_ESCAPE:
-                visibleTime = System.currentTimeMillis()+1000;
+                visibleTime = System.currentTimeMillis()+FADE_TIME;
                 buffer = null;
                 break;
             case KeyEvent.VK_LEFT:
@@ -149,7 +183,7 @@ public class Chat {
             if (currentTime > visibleTime) {
                 return;
             } else {
-                opacity = Math.min(visibleTime-currentTime, 1000)/1000f;
+                opacity = Math.min(visibleTime-currentTime, FADE_TIME)/(float)FADE_TIME;
             }
         } else {
             opacity = 1.0f;
@@ -199,16 +233,7 @@ public class Chat {
         outer: for (int y = textMaxY, i = 0; ; i++) {
             Message message = get(i);
             if (message == null) break;
-            if (message.isPlayer) {
-                Color color = UnoPanel.getTextColor();
-                if (color == null) {
-                    g.setColor(UnoCard.DEFAULT_TEXT_COLOR);
-                } else {
-                    g.setColor(color);
-                }
-            } else {
-                g.setColor(Color.WHITE);
-            }
+            g.setColor(message.isPlayer ? getColor() : Color.WHITE);
 
             List<String> lines = message.getLines(m, textSpaceX);
             for (int line = lines.size()-1; line >= 0; line--, y -= textSepY) {
@@ -236,7 +261,7 @@ public class Chat {
     }
 
     private void add(Message message) {
-        start = (start+history.length-1) % history.length;
+        start = (start-1) & HISTORY_MASK;
         history[start] = message;
         visibleTime = System.currentTimeMillis()+HIDE_DELAY;
     }
@@ -250,6 +275,6 @@ public class Chat {
             }
         }
         if (index >= history.length) return null;
-        return history[(start+index) % history.length];
+        return history[(start+index) & HISTORY_MASK];
     }
 }

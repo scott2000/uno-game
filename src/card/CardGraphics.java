@@ -12,18 +12,25 @@ public final class CardGraphics {
     public static final int WIDTH = 75;
     public static final int HEIGHT = 105;
 
-    private static final int ARC = 7;
+    public static final int ARC = 7;
+    public static final int HIGHLIGHT_ARC = ARC+3;
 
     private static final BufferedImage BACK_IMAGE;
     private static final BufferedImage SHADE_IMAGE;
 
     private static BufferedImage[] cardImages = new BufferedImage[UnoCard.ORDER_CODE_COUNT];
 
-    public static void paint(Graphics2D g, UnoCard card, boolean darken, double x, double y, double flipAnimate) {
+    public static void paint(Graphics2D g, UnoCard card, boolean darken, long highlightTime, double x, double y, double flipAnimate) {
         if (flipAnimate == 0) {
             g.setColor(Color.BLACK);
             g.draw(new Line2D.Double(x, y, x, y+HEIGHT));
             return;
+        }
+
+        if (highlightTime != 0 && flipAnimate == 1) {
+            float dist = UnoPanel.getHighlightDist(highlightTime);
+            g.setColor(UnoPanel.withAlpha(card.getColor(), 0.5f));
+            g.fill(new RoundRectangle2D.Double(x-dist, y-dist, WIDTH+dist*2+1, HEIGHT+dist*2+1, HIGHLIGHT_ARC, HIGHLIGHT_ARC));
         }
 
         AffineTransform transform = new AffineTransform();

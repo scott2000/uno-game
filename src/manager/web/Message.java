@@ -22,6 +22,7 @@ public class Message {
 
     @Override
     public String toString() {
-        return (optional ? WebManager.OPTIONAL + kind : kind)+WebManager.MESSAGE_SEPARATOR+contents;
+        String header = optional ? WebManager.OPTIONAL + kind : kind;
+        return contents == null ? header : header+WebManager.MESSAGE_SEPARATOR+contents;
     }
 }

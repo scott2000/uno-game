@@ -62,6 +62,9 @@ public abstract class HandManager {
 
     public final void endTurn() {
         isTurn = false;
+        for (CardObject cardObject : hand) {
+            cardObject.setHighlighted(false);
+        }
     }
 
     public final int count() {

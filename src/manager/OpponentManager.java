@@ -15,7 +15,7 @@ public abstract class OpponentManager extends HandManager {
     protected DeckManager deckManager = null;
 
     private void updateCS() {
-        columns = Math.max((UnoPanel.width - 2* MARGIN)/SEP_X, 3);
+        columns = Math.max((UnoPanel.width - 2*MARGIN)/SEP_X, 3);
         sepY = UnoPanel.isGameOver() && !hand.isEmpty() && hand.get(0).getCard() != null ? SEP_Y : SEP_Y_HIDDEN;
     }
 
@@ -66,13 +66,19 @@ public abstract class OpponentManager extends HandManager {
 
     public void newGame(UnoCard topOfDeck, UnoCard[] hand) {}
 
-    public void restore(UnoCard topOfDeck, UnoCard[] hand, int playerSize, List<UnoCard> discard, boolean playerWillStart) {}
+    public void restore(UnoCard topOfDeck, UnoCard[] hand, int playerSize, List<UnoCard> discard, boolean playerWillStart, boolean hasDrawn) {}
 
     public void reveal(List<CardObject> cardObjects) {}
 
     public void chat(String message) {}
 
     public void canSave() {}
+
+    public boolean fastReset() {
+        return false;
+    }
+
+    public void willReset() {}
 
     public void gameOver() {}
 
