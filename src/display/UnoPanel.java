@@ -121,6 +121,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                                 currentEvent = eventQueue.removeFirst();
                                 ArrayDeque<Event> oldQueue = eventQueue;
                                 eventQueue = new ArrayDeque<>();
+                                System.out.println("# "+currentEvent);
                                 currentEvent.start();
                                 if (eventQueue.isEmpty()) {
                                     eventQueue = oldQueue;
@@ -217,7 +218,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         });
     }
 
-    public static boolean hasEvent() {
+    public static boolean hasEventInQueue() {
         return !eventQueue.isEmpty();
     }
 
@@ -319,7 +320,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         }
         CardGraphics.paintBlank(g, drawPileLocation.x, drawPileLocation.y);
 
-        if (player.isTurn && hasDrawn) {
+        if (player.isTurn && hasDrawn && !hasEventInQueue()) {
             Color color = topOfDeck.getCard().getColor();
             endTurnButton = new Point(topOfDeckLocation.x + CardGraphics.WIDTH + HandManager.MARGIN, (height - END_TURN_HEIGHT)/2);
             if (endRecommendedTime != 0) {
@@ -344,8 +345,6 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
             g.setColor(Color.WHITE);
             g.setFont(new Font("SansSerif", Font.BOLD, 12));
             shadowTextCenter(g, "End Turn", endTurnButton.x + END_TURN_WIDTH/2.0f, endTurnButton.y + END_TURN_HEIGHT/2.0f);
-        } else {
-            endTurnButton = null;
         }
 
         if (circleColor != null) {
@@ -428,7 +427,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
     }
 
     private static boolean playerShouldEndTurn() {
-        return !player.shouldPlayDrawnCard(opponent.count() == 1);
+        return !player.shouldPlayDrawnCard();
     }
 
     public static void saveState(List<String> saveData) {
@@ -723,7 +722,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
     @Override
     public void mousePressed(MouseEvent e) {
         synchronized (this) {
-            if (currentEvent == null) {
+            if (!hasEventInQueue()) {
                 int x = e.getX();
                 int y = e.getY();
                 pushEvent("click("+x+", "+y+")", () -> {
@@ -732,6 +731,8 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                             menu = null;
                         }
                     } else if (drawPileLocation != null && player.isTurn) {
+                        System.out.println(hasDrawn);
+                        System.out.println(endTurnButton);
                         if (!player.click(x, y, drawPileLocation) && hasDrawn && endTurnButton != null
                                 && x >= endTurnButton.x && x <= endTurnButton.x+END_TURN_WIDTH
                                 && y >= endTurnButton.y && y <= endTurnButton.y+END_TURN_HEIGHT) {

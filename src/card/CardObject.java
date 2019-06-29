@@ -34,7 +34,7 @@ public final class CardObject {
     }
 
     public void setHighlighted(boolean highlighted) {
-        highlightTime = highlighted ? System.currentTimeMillis() - (long) ((1-flipAnimate)*FLIP_TIME) : 0;
+        highlightTime = highlighted ? System.currentTimeMillis() - Math.max(0, (long) (-flipAnimate*FLIP_TIME/2)) : 0;
     }
 
     public void update(double targetX, double targetY, boolean flipped, long time) {

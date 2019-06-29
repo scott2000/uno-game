@@ -132,7 +132,7 @@ public class Chat {
                 cursor = 0;
                 break;
             case KeyEvent.VK_ESCAPE:
-                visibleTime = 0;
+                visibleTime = Math.min(System.currentTimeMillis()+FADE_TIME, visibleTime);
                 break;
             }
         } else {

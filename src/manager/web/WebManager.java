@@ -159,54 +159,60 @@ public abstract class WebManager extends OpponentManager {
 
     abstract Socket start();
 
-    // opponent actions should usually be handled as events due to possible timing desynchronization
+    // opponent actions must be synchronized through the UnoPanel to avoid issues with other threads
     private void handleMessage(Message message) {
         switch (message.kind) {
         case "drawCard":
-            UnoPanel.pushEvent("drawCard", () -> {
-                requireTurn();
-                if (UnoPanel.canDraw()) {
-                    UnoPanel.drawCard();
-                } else {
-                    invalid("Opponent tried to draw a second card.");
-                }
-            });
+            synchronized (Uno.PANEL) {
+                UnoPanel.pushEvent("<drawCard>", () -> {
+                    requireTurn();
+                    if (UnoPanel.canDraw()) {
+                        UnoPanel.drawCard();
+                    } else {
+                        invalid("Opponent tried to draw a second card.");
+                    }
+                });
+            }
             return;
         case "playCard":
-            UnoPanel.pushEvent("playCard", () -> {
-                requireTurn();
-                try {
-                    String[] parts = message.contents.split(" ");
-                    int c = Integer.parseInt(parts[0]);
-                    UnoCard newCard = UnoCard.decode(parts[1]);
-                    if (c < 0 || c >= hand.size()) {
-                        invalid("Opponent believes their hand is a different size.");
-                        return;
+            synchronized (Uno.PANEL) {
+                UnoPanel.pushEvent("<playCard>", () -> {
+                    requireTurn();
+                    try {
+                        String[] parts = message.contents.split(" ");
+                        int c = Integer.parseInt(parts[0]);
+                        UnoCard newCard = UnoCard.decode(parts[1]);
+                        if (c < 0 || c >= hand.size()) {
+                            invalid("Opponent believes their hand is a different size.");
+                            return;
+                        }
+                        CardObject cardObject = hand.get(c);
+                        UnoCard oldCard = cardObject.getCard();
+                        if (oldCard == null || oldCard.canBecome(newCard)) {
+                            cardObject.setCard(newCard);
+                            UnoPanel.playCard(c);
+                        } else {
+                            invalid("Opponent tried to play " + oldCard + " as " + newCard + ".");
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        write("invalid", message.toString());
+                        Uno.invalidMessage(message);
                     }
-                    CardObject cardObject = hand.get(c);
-                    UnoCard oldCard = cardObject.getCard();
-                    if (oldCard == null || oldCard.canBecome(newCard)) {
-                        cardObject.setCard(newCard);
-                        UnoPanel.playCard(c);
-                    } else {
-                        invalid("Opponent tried to play "+oldCard+" as "+newCard+".");
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    write("invalid", message.toString());
-                    Uno.invalidMessage(message);
-                }
-            });
+                });
+            }
             return;
         case "finishTurnEarly":
-            UnoPanel.pushEvent("finishTurnEarly", () -> {
-                requireTurn();
-                if (UnoPanel.canDraw()) {
-                    invalid("Opponent tried to end turn without drawing a card.");
-                } else {
-                    UnoPanel.finishTurnEarly();
-                }
-            });
+            synchronized (Uno.PANEL) {
+                UnoPanel.pushEvent("<finishTurnEarly>", () -> {
+                    requireTurn();
+                    if (UnoPanel.canDraw()) {
+                        invalid("Opponent tried to end turn without drawing a card.");
+                    } else {
+                        UnoPanel.finishTurnEarly();
+                    }
+                });
+            }
             return;
         case "reveal":
             synchronized (Uno.PANEL) {

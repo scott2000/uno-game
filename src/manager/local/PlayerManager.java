@@ -1,6 +1,9 @@
 package manager.local;
 
-import card.*;
+import card.CardGraphics;
+import card.CardObject;
+import card.UnoCard;
+import card.WildCard;
 import display.UnoPanel;
 import manager.HandManager;
 import menu.ColorSelectMenu;
@@ -41,10 +44,10 @@ public class PlayerManager extends HandManager {
         return false;
     }
 
-    public boolean shouldPlayDrawnCard(boolean opponentUno) {
+    public boolean shouldPlayDrawnCard() {
         CardObject cardObject = hand.get(hand.size()-1);
         UnoCard card = cardObject.getCard();
-        if ((opponentUno || card instanceof NormalCard || hand.size() == 2) && card.canPlayOn(UnoPanel.getTopOfDeck())) {
+        if (card.canPlayOn(UnoPanel.getTopOfDeck())) {
             cardObject.setHighlighted(true);
             return true;
         } else {
@@ -79,7 +82,7 @@ public class PlayerManager extends HandManager {
 
         for (int c : sortedIndices) {
             CardObject cardObject = hand.get(c);
-            cardObject.paint(g, UnoPanel.hasEvent() || !isTurn || !cardObject.getCard().canPlayOn(UnoPanel.getTopOfDeck()));
+            cardObject.paint(g, UnoPanel.hasEventInQueue() || !isTurn || !cardObject.getCard().canPlayOn(UnoPanel.getTopOfDeck()));
         }
 
         return UnoPanel.height - SEP_Y*rows - CardGraphics.HEIGHT - MARGIN;

@@ -27,16 +27,16 @@ public final class CardGraphics {
             return;
         }
 
-        if (highlightTime != 0 && flipAnimate == 1) {
-            float dist = UnoPanel.getHighlightDist(highlightTime);
-            g.setColor(UnoPanel.withAlpha(card.getColor(), 0.5f));
-            g.fill(new RoundRectangle2D.Double(x-dist, y-dist, WIDTH+dist*2+1, HEIGHT+dist*2+1, HIGHLIGHT_ARC, HIGHLIGHT_ARC));
-        }
-
         AffineTransform transform = new AffineTransform();
 
         double centerX = WIDTH/2;
         double scaleFactor = Math.abs(flipAnimate);
+
+        if (highlightTime != 0 && flipAnimate > 0) {
+            float dist = UnoPanel.getHighlightDist(highlightTime);
+            g.setColor(UnoPanel.withAlpha(card.getColor(), 0.5f));
+            g.fill(new RoundRectangle2D.Double(x+centerX*(1-scaleFactor)-dist, y-dist, (WIDTH+dist*2)*scaleFactor+1, HEIGHT+dist*2+1, HIGHLIGHT_ARC*scaleFactor, HIGHLIGHT_ARC));
+        }
 
         boolean noAntialias = Math.round(x) == x && Math.round(y) == y && scaleFactor == 1;
         if (noAntialias) UnoPanel.setNoAntialias(g);
