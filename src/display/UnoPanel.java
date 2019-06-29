@@ -121,7 +121,6 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                                 currentEvent = eventQueue.removeFirst();
                                 ArrayDeque<Event> oldQueue = eventQueue;
                                 eventQueue = new ArrayDeque<>();
-                                System.out.println("# "+currentEvent);
                                 currentEvent.start();
                                 if (eventQueue.isEmpty()) {
                                     eventQueue = oldQueue;
@@ -731,8 +730,6 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                             menu = null;
                         }
                     } else if (drawPileLocation != null && player.isTurn) {
-                        System.out.println(hasDrawn);
-                        System.out.println(endTurnButton);
                         if (!player.click(x, y, drawPileLocation) && hasDrawn && endTurnButton != null
                                 && x >= endTurnButton.x && x <= endTurnButton.x+END_TURN_WIDTH
                                 && y >= endTurnButton.y && y <= endTurnButton.y+END_TURN_HEIGHT) {
