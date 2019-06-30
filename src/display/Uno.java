@@ -16,7 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class Uno extends JFrame {
-    public static final int VERSION = 3_00;
+    public static final int VERSION = 3_01;
     public static final int BACK_COMPAT_VERSION = 3_00;
 
     public static final UnoPanel PANEL = new UnoPanel();

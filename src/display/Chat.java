@@ -104,6 +104,7 @@ public class Chat {
     }
 
     void changeColor(Color color) {
+        currentColor = getColor();
         newColor = color;
         colorTime = System.currentTimeMillis();
     }

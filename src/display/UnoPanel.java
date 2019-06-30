@@ -515,6 +515,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                 UnoCard card = topOfDeck.getCard();
                 if (target.count() == 0) {
                     startCircle();
+                    changeChatColor();
                     endGame();
                     return;
                 } else if (card.getColorCode() != oldTopOfDeck.getColorCode()) {

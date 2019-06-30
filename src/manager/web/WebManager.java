@@ -80,8 +80,11 @@ public abstract class WebManager extends OpponentManager {
         }
     }
 
-    private synchronized MessageHandler handlerFor(String kind, boolean optional) {
-        MessageHandler handler = handlers.get(kind);
+    private MessageHandler handlerFor(String kind, boolean optional) {
+        MessageHandler handler;
+        synchronized (this){
+            handler = handlers.get(kind);
+        }
         if (handler == null) {
             // it wasn't declared, so it will never be read from and can be safely created and then discarded
             handler = new MessageHandler();
@@ -351,10 +354,9 @@ public abstract class WebManager extends OpponentManager {
         write("reset");
         waitFor("reset");
         synchronized (this) {
-            if (!hasEstablishedVersion) {
-                invalid("Opponent did not send version information before reset.");
-            }
+            if (hasEstablishedVersion) return;
         }
+        invalid("Opponent did not send version information before reset.");
     }
 
     @Override
