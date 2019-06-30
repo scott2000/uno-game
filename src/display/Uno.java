@@ -251,6 +251,12 @@ public class Uno extends JFrame {
                 "Invalid Message");
     }
 
+    public static void missingMessage(String kind) {
+        asyncErrorDialog(
+                "Expected a message of type \""+kind+"\", but it never came.",
+                "Missing Message");
+    }
+
     private Uno() {
         add(PANEL);
         addKeyListener(PANEL);

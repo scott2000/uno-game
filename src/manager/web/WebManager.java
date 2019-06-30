@@ -31,11 +31,11 @@ public abstract class WebManager extends OpponentManager {
 
     private boolean hasEstablishedVersion = false;
 
-    private static class MessageHandler {
+    private class MessageHandler {
         private ArrayDeque<String> messages = new ArrayDeque<>();
         private ArrayDeque<Mailbox> waitingMailboxes = new ArrayDeque<>();
 
-        static class Mailbox {
+        private class Mailbox {
             String message;
             boolean received = false;
 
@@ -45,16 +45,21 @@ public abstract class WebManager extends OpponentManager {
                 notify();
             }
 
-            synchronized String take() {
-                while (!received) {
+            synchronized String take(String kind) {
+                if (received) return message;
+                for (int attempts = 0; attempts < 15; attempts++) {
                     try {
-                        wait();
+                        wait(2_000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
-                        Uno.desynchronized();
                     }
+                    if (received) return message;
+                    System.out.flush();
+                    System.err.printf("! Still waiting for \"%s\" message...\n", kind);
+                    System.err.flush();
                 }
-                return message;
+                if (close()) Uno.missingMessage(kind);
+                return null;
             }
         }
 
@@ -66,7 +71,7 @@ public abstract class WebManager extends OpponentManager {
             }
         }
 
-        String next() {
+        String next(String kind) {
             Mailbox mailbox;
             synchronized (this) {
                 if (messages.isEmpty()) {
@@ -76,7 +81,7 @@ public abstract class WebManager extends OpponentManager {
                     return messages.removeFirst();
                 }
             }
-            return mailbox.take();
+            return mailbox.take(kind);
         }
     }
 
@@ -326,7 +331,7 @@ public abstract class WebManager extends OpponentManager {
     }
 
     final String waitFor(String kind) {
-        return handlerFor(kind, false).next();
+        return handlerFor(kind, false).next(kind);
     }
 
     @Override
