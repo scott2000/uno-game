@@ -85,7 +85,7 @@ public class ComputerManager extends OpponentManager {
                     }
                     if (color == targetColor) {
                         matchColor = c;
-                        if (card.isNumeric()) {
+                        if (card.isNumeric() && opponentHandSize > 2) {
                             break;
                         }
                     }
