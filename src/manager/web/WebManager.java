@@ -14,6 +14,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public abstract class WebManager extends OpponentManager {
@@ -30,6 +31,8 @@ public abstract class WebManager extends OpponentManager {
     private boolean isClosed = false;
 
     private boolean hasEstablishedVersion = false;
+
+    private ArrayList<String> debugQueue = new ArrayList<>();
 
     private class MessageHandler {
         private ArrayDeque<String> messages = new ArrayDeque<>();
@@ -54,10 +57,9 @@ public abstract class WebManager extends OpponentManager {
                         e.printStackTrace();
                     }
                     if (received) return message;
-                    System.out.flush();
-                    System.err.printf("! Still waiting for \"%s\" message...\n", kind);
-                    System.err.flush();
+                    error("Still waiting for \""+kind+"\" message...");
                 }
+                sendDebug();
                 if (close()) Uno.missingMessage(kind);
                 return null;
             }
@@ -163,6 +165,23 @@ public abstract class WebManager extends OpponentManager {
             socket.close();
         } catch (IOException ignored) {}
         return true;
+    }
+
+    private void sendDebug() {
+        ArrayList<String> queue;
+        synchronized (this) {
+            queue = debugQueue;
+            debugQueue = new ArrayList<>();
+        }
+        for (String line : queue) {
+            write("?debug", line);
+        }
+    }
+
+    @Override
+    public void reset() {
+        super.reset();
+        debugQueue.clear();
     }
 
     abstract Socket start();
@@ -289,12 +308,14 @@ public abstract class WebManager extends OpponentManager {
     private void error(String msg) {
         System.out.flush();
         System.err.println("! "+msg);
-        if (close()) Uno.desynchronized();
+        System.err.flush();
     }
 
     private void invalid(String msg) {
-        write("invalid");
         error(msg);
+        sendDebug();
+        write("invalid");
+        if (close()) Uno.desynchronized();
     }
 
     private String read() {
@@ -307,6 +328,9 @@ public abstract class WebManager extends OpponentManager {
         if (result == null) {
             if (close()) Uno.disconnect();
         } else {
+            synchronized (this) {
+                debugQueue.add("[R] "+result);
+            }
             System.out.println("> "+result);
         }
         return result;
@@ -314,6 +338,9 @@ public abstract class WebManager extends OpponentManager {
 
     private void write(String text) {
         synchronized (this) {
+            synchronized (this) {
+                debugQueue.add("[W] "+text);
+            }
             if (output != null) {
                 output.println(text);
                 if (!output.checkError() && !socket.isClosed()) return;

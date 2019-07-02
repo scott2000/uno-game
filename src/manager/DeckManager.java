@@ -108,7 +108,7 @@ public class DeckManager {
         } catch (IOException ignored) {}
     }
 
-    private boolean isCorrectVersionInfo(String versionInfo) {
+    private static boolean isCorrectVersionInfo(String versionInfo) {
         return !versionInfo.isEmpty() && versionInfo.charAt(0) == VERSION_PREFIX && Uno.isCompatible(versionInfo.substring(1));
     }
 
