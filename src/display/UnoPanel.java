@@ -140,6 +140,11 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                                 }
                                 shouldRepaintAll();
                             }
+                            // if the event took a really long time (more than 10 times the normal frequency), ignore it
+                            currentTime = System.currentTimeMillis();
+                            if (currentTime-lastTime > 10*REFRESH_FREQUENCY) {
+                                lastTime = currentTime;
+                            }
                         } else if (currentTime >= gameOverTimer && gameOverTimer != -1) {
                             if (opponent.fastReset()) {
                                 reset();
@@ -156,21 +161,19 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                             }
                         }
 
-                        if (time != 0) {
-                            if (gameOverTimer != 0) {
-                                repaint(0);
-                            } else if (repaintAll) {
-                                repaintAll = false;
-                                repaint(0);
-                            } else if (endTurnButton != null) {
-                                repaint(0,
-                                        endTurnButton.x - HandManager.MARGIN,
-                                        endTurnButton.y - HandManager.MARGIN,
-                                        END_TURN_WIDTH + HandManager.MARGIN*2,
-                                        END_TURN_HEIGHT + HandManager.MARGIN*2);
-                            }
+                        if (gameOverTimer != 0) {
                             repaint(0);
+                        } else if (repaintAll) {
+                            repaintAll = false;
+                            repaint(0);
+                        } else if (endTurnButton != null) {
+                            repaint(0,
+                                    endTurnButton.x - HandManager.MARGIN,
+                                    endTurnButton.y - HandManager.MARGIN,
+                                    END_TURN_WIDTH + HandManager.MARGIN*2,
+                                    END_TURN_HEIGHT + HandManager.MARGIN*2);
                         }
+                        repaint(0);
                     }
                     Thread.sleep(REFRESH_FREQUENCY);
                 } catch (InterruptedException ignored) {}
