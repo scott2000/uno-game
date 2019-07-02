@@ -27,7 +27,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         boolean isDone();
     }
 
-    private static final long REFRESH_FREQUENCY = 5;
+    private static final long REFRESH_FREQUENCY = 8;
     private static final long CIRCLE_EXPAND_TIME = 250;
 
     private static final int CIRCLE_INITIAL_RADIUS = CardGraphics.WIDTH;
@@ -64,6 +64,8 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
 
     private static boolean hasDrawn;
     private static long endRecommendedTime = 0;
+
+    private static boolean repaintAll;
 
     private boolean isInitialized = false;
 
@@ -103,6 +105,12 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                                 if (circleOpacityRoot <= 0.0f) {
                                     circleColor = null;
                                 }
+                                int radius = CIRCLE_EXPAND_RADIUS + HandManager.MARGIN;
+                                repaint( 0, topOfDeckLocation.x-radius, topOfDeckLocation.y-radius, 2*radius, 2*radius);
+                            }
+
+                            if (chat != null && chat.needsRepaint()) {
+                                repaint(0, 0, HandManager.MARGIN, drawPileLocation.x, height-HandManager.MARGIN*2);
                             }
                         }
 
@@ -111,6 +119,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                                 if (currentEvent != null) {
                                     if (currentEvent.isDone()) {
                                         currentEvent = null;
+                                        shouldRepaintAll();
                                     } else {
                                         break;
                                     }
@@ -129,6 +138,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                                         eventQueue.addLast(event);
                                     }
                                 }
+                                shouldRepaintAll();
                             }
                         } else if (currentTime >= gameOverTimer && gameOverTimer != -1) {
                             if (opponent.fastReset()) {
@@ -147,6 +157,18 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                         }
 
                         if (time != 0) {
+                            if (gameOverTimer != 0) {
+                                repaint(0);
+                            } else if (repaintAll) {
+                                repaintAll = false;
+                                repaint(0);
+                            } else if (endTurnButton != null) {
+                                repaint(0,
+                                        endTurnButton.x - HandManager.MARGIN,
+                                        endTurnButton.y - HandManager.MARGIN,
+                                        END_TURN_WIDTH + HandManager.MARGIN*2,
+                                        END_TURN_HEIGHT + HandManager.MARGIN*2);
+                            }
                             repaint(0);
                         }
                     }
@@ -166,6 +188,11 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         hasDrawn = false;
         player.reset();
         opponent.reset();
+        shouldRepaintAll();
+    }
+
+    private static void shouldRepaintAll() {
+        repaintAll = true;
     }
 
     static void setChatName(String name) {
@@ -223,6 +250,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
 
     public static void setMenu(UnoMenu menu) {
         UnoPanel.menu = menu;
+        shouldRepaintAll();
     }
 
     public static boolean isGameOver() {
@@ -281,8 +309,13 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
     }
 
     private void updateWHD(boolean willDisplay) {
-        width = getWidth();
-        height = getHeight();
+        int newWidth = getWidth();
+        int newHeight = getHeight();
+        if (newWidth != width || newHeight != height) {
+            width = newWidth;
+            height = newHeight;
+            shouldRepaintAll();
+        }
         int dy = (height-CardGraphics.HEIGHT)/2+2;
         drawPileLocation = new Point((width-2*CardGraphics.WIDTH)/2-5, dy);
         topOfDeckLocation = new Point(width/2+5, dy);
@@ -486,6 +519,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
                 cardObject = drawCardDirectlyTo(card, current());
                 endRecommendedTime = player.isTurn && playerShouldEndTurn() ? System.currentTimeMillis() : 0;
                 opponent.canSave();
+                shouldRepaintAll();
             }
 
             @Override
@@ -609,6 +643,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         endRecommendedTime = playerWillStart && hasDrawn && playerShouldEndTurn() ? System.currentTimeMillis() : 0;
         UnoPanel.hasDrawn = hasDrawn;
         startGame(playerWillStart);
+        shouldRepaintAll();
     }
 
     public static void finishTurnEarly() {
@@ -701,6 +736,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
         } else {
             opponent.startTurn(player.count());
         }
+        shouldRepaintAll();
     }
 
     private static void finishTurn() {
@@ -714,6 +750,7 @@ public class UnoPanel extends JPanel implements MouseListener, KeyListener {
             player.startTurn(opponent.count());
         }
         opponent.canSave();
+        shouldRepaintAll();
     }
 
     @Override

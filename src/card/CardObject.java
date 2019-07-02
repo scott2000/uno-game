@@ -1,5 +1,8 @@
 package card;
 
+import display.Uno;
+import manager.HandManager;
+
 import java.awt.*;
 
 public final class CardObject {
@@ -38,6 +41,12 @@ public final class CardObject {
     }
 
     public void update(double targetX, double targetY, boolean flipped, long time) {
+        double targetFlipAnimate = flipped ? 1.0 : -1.0;
+        if (x == targetX && y == targetY && flipAnimate == targetFlipAnimate && highlightTime == 0) {
+            isAnimating = false;
+            return;
+        }
+        repaint();
         if (isAnimating) {
             isAnimating = false;
             if (x != targetX || y != targetY) {
@@ -68,9 +77,19 @@ public final class CardObject {
                 flipAnimate = Math.max(flipAnimate - FLIP_SPEED * time, -1.0);
             }
         } else {
-            setPosition(targetX, targetY);
-            setFlipped(flipped);
+            x = targetX;
+            y = targetY;
+            flipAnimate = targetFlipAnimate;
         }
+        repaint();
+    }
+
+    private void repaint() {
+        Uno.PANEL.repaint(0,
+                (int) (x - HandManager.MARGIN),
+                (int) (y - HandManager.MARGIN),
+                CardGraphics.WIDTH + HandManager.MARGIN*2,
+                CardGraphics.HEIGHT + HandManager.MARGIN*2);
     }
 
     public void startAnimating() {

@@ -31,6 +31,8 @@ public class Chat {
     private Color newColor;
     private long colorTime;
 
+    private boolean dirty;
+
     private class Message {
         final String message;
         final boolean isPlayer;
@@ -101,12 +103,25 @@ public class Chat {
     void setColor(Color color) {
         currentColor = color;
         newColor = null;
+        dirty = true;
     }
 
     void changeColor(Color color) {
         currentColor = getColor();
         newColor = color;
         colorTime = System.currentTimeMillis();
+    }
+
+    boolean needsRepaint() {
+        if (buffer == null && System.currentTimeMillis() < visibleTime) {
+            // do not clear dirty flag! this makes sure it is repainted when it has faded completely
+            return true;
+        }
+        if (newColor != null || dirty) {
+            dirty = false;
+            return true;
+        }
+        return false;
     }
 
     private Color getColor() {
@@ -126,6 +141,7 @@ public class Chat {
     }
 
     void press(int code) {
+        dirty = true;
         if (buffer == null) {
             switch (code) {
             case KeyEvent.VK_ENTER:
@@ -168,6 +184,7 @@ public class Chat {
     }
 
     void type(char c) {
+        dirty = true;
         if (buffer == null) {
             buffer = Character.toString(c);
             cursor = 1;
@@ -181,7 +198,7 @@ public class Chat {
         long currentTime = System.currentTimeMillis();
         float opacity;
         if (buffer == null) {
-            if (currentTime > visibleTime) {
+            if (currentTime >= visibleTime) {
                 return;
             } else {
                 opacity = Math.min(visibleTime-currentTime, FADE_TIME)/(float)FADE_TIME;
@@ -265,6 +282,7 @@ public class Chat {
         start = (start-1) & HISTORY_MASK;
         history[start] = message;
         visibleTime = System.currentTimeMillis()+HIDE_DELAY;
+        dirty = true;
     }
 
     private Message get(int index) {

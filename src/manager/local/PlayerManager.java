@@ -67,6 +67,15 @@ public class PlayerManager extends HandManager {
             float y = UnoPanel.height - SEP_Y *(rows-row) - CardGraphics.HEIGHT - MARGIN;
             hand.get(sortedIndices.get(cc)).update(x, y, true, time);
         }
+
+//        if (isTurn) {
+//            int y = UnoPanel.height - SEP_Y*rows - CardGraphics.HEIGHT - 50;
+//            Uno.PANEL.repaint(0,
+//                    UnoPanel.width/4,
+//                    y,
+//                    UnoPanel.width/2,
+//                    100);
+//        }
     }
 
     @Override
