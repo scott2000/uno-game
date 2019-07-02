@@ -15,9 +15,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class Uno extends JFrame {
-    public static final int VERSION = 3_01;
-    public static final int BACK_COMPAT_VERSION = 3_00;
+public final class Uno extends JFrame {
+    public static final int VERSION = 3_02;
+    public static final int BACK_COMPAT_VERSION = 3_02;
 
     public static final UnoPanel PANEL = new UnoPanel();
 
@@ -27,6 +27,9 @@ public class Uno extends JFrame {
 
     private static final File LAST_ADDRESS_FILE = new File(UNO_DIRECTORY, "lastOnlineAddress");
     private static final Path LAST_ADDRESS_PATH = LAST_ADDRESS_FILE.toPath();
+
+    private static Uno instance;
+    private static boolean hasError;
 
     public static boolean isCompatible(String versionInfo) {
         if (versionInfo == null) return false;
@@ -196,6 +199,7 @@ public class Uno extends JFrame {
         dialog.setLocationRelativeTo(null);
         dialog.setModalityType(JDialog.ModalityType.MODELESS);
         dialog.setVisible(true);
+        close();
     }
 
     public static void failServerStart() {
@@ -228,6 +232,7 @@ public class Uno extends JFrame {
                         formatVersion(Integer.toString(BACK_COMPAT_VERSION))),
                 JOptionPane.ERROR_MESSAGE);
         System.exit(1);
+        close();
     }
 
     public static void playerIncompatible(String version) {
@@ -257,6 +262,15 @@ public class Uno extends JFrame {
                 "Missing Message");
     }
 
+    private static void close() {
+        synchronized (Uno.class) {
+            hasError = true;
+            if (instance != null) {
+                instance.setVisible(false);
+            }
+        }
+    }
+
     private Uno() {
         add(PANEL);
         addKeyListener(PANEL);
@@ -277,6 +291,11 @@ public class Uno extends JFrame {
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        setVisible(true);
+        synchronized (Uno.class) {
+            if (!hasError) {
+                setVisible(true);
+                instance = this;
+            }
+        }
     }
 }

@@ -11,7 +11,7 @@ import menu.ColorSelectMenu;
 import java.awt.*;
 import java.util.ArrayList;
 
-public class PlayerManager extends HandManager {
+public final class PlayerManager extends HandManager {
     private int columns;
     private int rows;
     private ArrayList<Integer> sortedIndices = new ArrayList<>();

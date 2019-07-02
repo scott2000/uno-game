@@ -41,8 +41,7 @@ public final class CardObject {
     }
 
     public void update(double targetX, double targetY, boolean flipped, long time) {
-        double targetFlipAnimate = flipped ? 1.0 : -1.0;
-        if (x == targetX && y == targetY && flipAnimate == targetFlipAnimate && highlightTime == 0) {
+        if (x == targetX && y == targetY && flipAnimate == (flipped ? 1.0 : -1.0) && highlightTime == 0) {
             isAnimating = false;
             return;
         }
@@ -79,7 +78,7 @@ public final class CardObject {
         } else {
             x = targetX;
             y = targetY;
-            flipAnimate = targetFlipAnimate;
+            setFlipped(flipped);
         }
         repaint();
     }

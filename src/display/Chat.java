@@ -9,7 +9,7 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Chat {
+public final class Chat {
     private static final char CURSOR_CHAR = '\uFEFF';
     private static final int TEXT_MARGIN = 5;
     private static final long HIDE_DELAY = 5000;

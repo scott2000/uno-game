@@ -7,7 +7,7 @@ import display.UnoPanel;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 
-public class ColorSelectMenu implements UnoMenu {
+public final class ColorSelectMenu implements UnoMenu {
     private static final int WIDTH = 300;
     private static final int HEIGHT = 200;
     private static final int BUTTON_SIZE = 75;

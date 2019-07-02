@@ -21,7 +21,7 @@ import java.awt.geom.RoundRectangle2D;
 import java.util.*;
 import java.util.List;
 
-public class UnoPanel extends JPanel implements MouseListener, KeyListener {
+public final class UnoPanel extends JPanel implements MouseListener, KeyListener {
     private interface Event {
         void start();
         boolean isDone();

@@ -50,15 +50,16 @@ public abstract class WebManager extends OpponentManager {
 
             synchronized String take(String kind) {
                 if (received) return message;
-                for (int attempts = 0; attempts < 15; attempts++) {
+                for (int attempts = 1; attempts < 8; attempts++) {
                     try {
-                        wait(2_000);
+                        wait(attempts*2_000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     if (received) return message;
                     error("Still waiting for \""+kind+"\" message...");
                 }
+                write("invalid", "expected"+MESSAGE_SEPARATOR+kind);
                 sendDebug();
                 if (close()) Uno.missingMessage(kind);
                 return null;
@@ -96,7 +97,7 @@ public abstract class WebManager extends OpponentManager {
             // it wasn't declared, so it will never be read from and can be safely created and then discarded
             handler = new MessageHandler();
             if (!optional) {
-                write("invalid", MESSAGE_SEPARATOR+kind);
+                write("invalid", "undefined"+MESSAGE_SEPARATOR+kind);
                 if (close()) Uno.unknownMessage(kind);
             }
         }
@@ -126,7 +127,7 @@ public abstract class WebManager extends OpponentManager {
                     handleMessage(message);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    write("invalid", message.toString());
+                    write("invalid", "malformed"+MESSAGE_SEPARATOR+message.toString());
                     Uno.invalidMessage(message);
                 }
             }
@@ -173,9 +174,12 @@ public abstract class WebManager extends OpponentManager {
             queue = debugQueue;
             debugQueue = new ArrayList<>();
         }
+        System.out.flush();
         for (String line : queue) {
+            System.err.println(line);
             write("?debug", line);
         }
+        System.err.flush();
     }
 
     @Override
@@ -289,6 +293,7 @@ public abstract class WebManager extends OpponentManager {
             if (close()) Uno.playerIncompatible(message.contents);
             return;
         case "invalid":
+            sendDebug();
             if (close()) Uno.desynchronized();
             return;
         case "close":
@@ -313,8 +318,8 @@ public abstract class WebManager extends OpponentManager {
 
     private void invalid(String msg) {
         error(msg);
-        sendDebug();
         write("invalid");
+        sendDebug();
         if (close()) Uno.desynchronized();
     }
 
@@ -329,7 +334,7 @@ public abstract class WebManager extends OpponentManager {
             if (close()) Uno.disconnect();
         } else {
             synchronized (this) {
-                debugQueue.add("[R] "+result);
+                debugQueue.add("[-] "+result);
             }
             System.out.println("> "+result);
         }
@@ -339,7 +344,7 @@ public abstract class WebManager extends OpponentManager {
     private void write(String text) {
         synchronized (this) {
             synchronized (this) {
-                debugQueue.add("[W] "+text);
+                debugQueue.add("[+] "+text);
             }
             if (output != null) {
                 output.println(text);

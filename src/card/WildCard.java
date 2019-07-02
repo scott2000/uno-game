@@ -2,7 +2,7 @@ package card;
 
 import java.awt.*;
 
-public class WildCard extends UnoCard {
+public final class WildCard extends UnoCard {
     private boolean isDrawFour;
     private int color;
 

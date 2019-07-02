@@ -10,7 +10,7 @@ import manager.OpponentManager;
 
 import java.util.List;
 
-public class ComputerManager extends OpponentManager {
+public final class ComputerManager extends OpponentManager {
     private int bestColor;
 
     public ComputerManager() {

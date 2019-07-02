@@ -11,7 +11,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
 
-public class ServerManager extends WebManager {
+public final class ServerManager extends WebManager {
     private ServerSocket socket;
 
     public ServerManager(int port) {
@@ -71,24 +71,26 @@ public class ServerManager extends WebManager {
 
     @Override
     public void newGame(UnoCard topOfDeck, UnoCard[] hand) {
-        StringBuilder message = new StringBuilder("new;");
+        StringBuilder message = new StringBuilder("new");
+        message.append(MESSAGE_SEPARATOR);
         encodeTopHand(message, topOfDeck, hand);
         write("start", message.toString());
     }
 
     @Override
     public void restore(UnoCard topOfDeck, UnoCard[] hand, int playerSize, List<UnoCard> discard, boolean playerWillStart, boolean hasDrawn) {
-        StringBuilder message = new StringBuilder("restore;");
+        StringBuilder message = new StringBuilder("restore");
+        message.append(MESSAGE_SEPARATOR);
         encodeTopHand(message, topOfDeck, hand);
-        message.append(';');
+        message.append(MESSAGE_SEPARATOR);
         message.append(playerSize);
         for (UnoCard card : discard) {
             message.append(' ');
             message.append(card.encode());
         }
-        message.append(';');
+        message.append(MESSAGE_SEPARATOR);
         message.append(playerWillStart ? '0' : '1');
-        message.append(';');
+        message.append(MESSAGE_SEPARATOR);
         message.append(hasDrawn ? '1' : '0');
         write("start", message.toString());
     }

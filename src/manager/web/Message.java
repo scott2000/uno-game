@@ -1,6 +1,6 @@
 package manager.web;
 
-public class Message {
+public final class Message {
     final String kind;
     final String contents;
     final boolean optional;

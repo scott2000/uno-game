@@ -2,7 +2,7 @@ package card;
 
 import java.awt.*;
 
-public class NormalCard extends UnoCard {
+public final class NormalCard extends UnoCard {
     private int color;
     private int number;
 

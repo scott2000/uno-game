@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class DeckManager {
+public final class DeckManager {
     private static final char VERSION_PREFIX = '#';
 
     public static final int CARDS_PER_DECK = 108;

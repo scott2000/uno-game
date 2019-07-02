@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class ClientManager extends WebManager {
+public final class ClientManager extends WebManager {
     private String host;
     private int port;
 
@@ -45,7 +45,7 @@ public class ClientManager extends WebManager {
     @Override
     public void reset() {
         super.reset();
-        String[] resetParams = waitFor("start").split(";");
+        String[] resetParams = waitFor("start").split(Character.toString(MESSAGE_SEPARATOR));
         String[] cardStrings = resetParams[1].split(" ");
         UnoCard topOfDeck = UnoCard.decode(cardStrings[0]);
         UnoCard[] playerHand = new UnoCard[cardStrings.length-1];
