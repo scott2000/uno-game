@@ -15,6 +15,9 @@ public final class CardGraphics {
     public static final int ARC = 7;
     public static final int HIGHLIGHT_ARC = ARC+3;
 
+    // Determines how high quality the cached images will be (1 is faster but blurry on high resolution displays)
+    private static final int QUALITY_FACTOR = 2;
+
     private static final BufferedImage BACK_IMAGE;
     private static final BufferedImage SHADE_IMAGE;
 
@@ -58,6 +61,7 @@ public final class CardGraphics {
                 g.draw(new RoundRectangle2D.Double(x+centerX*(1-scaleFactor), y, WIDTH*scaleFactor, HEIGHT, ARC*scaleFactor, ARC));
             }
         } else {
+            transform.scale(1.0/ QUALITY_FACTOR, 1.0/ QUALITY_FACTOR);
             g.drawImage(getCardImage(card), transform, null);
 
             if (darken) {
@@ -75,10 +79,11 @@ public final class CardGraphics {
     public static void paintBlank(Graphics2D g, double x, double y) {
         AffineTransform transform = new AffineTransform();
         transform.translate(x, y);
-        g.drawImage(BACK_IMAGE, transform, null);
+        paintBlank(g, transform);
     }
 
     private static void paintBlank(Graphics2D g, AffineTransform transform) {
+        transform.scale(1.0/ QUALITY_FACTOR, 1.0/ QUALITY_FACTOR);
         g.drawImage(BACK_IMAGE, transform, null);
     }
 
@@ -89,9 +94,11 @@ public final class CardGraphics {
             return cardImages[orderCode];
         }
 
-        cardImages[orderCode] = new BufferedImage(WIDTH+1, HEIGHT+1, BufferedImage.TYPE_INT_ARGB);
+        cardImages[orderCode] = new BufferedImage(QUALITY_FACTOR *(WIDTH+1), QUALITY_FACTOR *(HEIGHT+1), BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = (Graphics2D) cardImages[orderCode].getGraphics();
         UnoPanel.setHints(g);
+
+        g.scale(QUALITY_FACTOR, QUALITY_FACTOR);
 
         AffineTransform transform = g.getTransform();
         double centerX = WIDTH/2;
@@ -146,9 +153,11 @@ public final class CardGraphics {
     }
 
     static {
-        BACK_IMAGE = new BufferedImage(WIDTH + 1, HEIGHT + 1, BufferedImage.TYPE_INT_ARGB);
+        BACK_IMAGE = new BufferedImage(QUALITY_FACTOR *(WIDTH+1), QUALITY_FACTOR *(HEIGHT+1), BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = (Graphics2D) BACK_IMAGE.getGraphics();
         UnoPanel.setHints(g);
+
+        g.scale(QUALITY_FACTOR, QUALITY_FACTOR);
 
         AffineTransform transform = g.getTransform();
         double centerX = WIDTH / 2;
@@ -181,9 +190,11 @@ public final class CardGraphics {
     }
 
     static {
-        SHADE_IMAGE = new BufferedImage(WIDTH+1, HEIGHT+1, BufferedImage.TYPE_INT_ARGB);
+        SHADE_IMAGE = new BufferedImage(QUALITY_FACTOR *(WIDTH+1), QUALITY_FACTOR *(HEIGHT+1), BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = (Graphics2D) SHADE_IMAGE.getGraphics();
         UnoPanel.setHints(g);
+
+        g.scale(QUALITY_FACTOR, QUALITY_FACTOR);
 
         g.setColor(new Color(0.0f, 0.0f, 0.0f, 0.15f));
         g.fill(new RoundRectangle2D.Double(0, 0, WIDTH, HEIGHT, ARC, ARC));
