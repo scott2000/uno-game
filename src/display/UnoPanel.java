@@ -64,6 +64,7 @@ public final class UnoPanel extends JPanel implements MouseListener, KeyListener
 
     private static boolean hasDrawn;
     private static long endRecommendedTime = 0;
+    private static int peekStage = 0;
 
     private static boolean repaintAll;
 
@@ -254,6 +255,10 @@ public final class UnoPanel extends JPanel implements MouseListener, KeyListener
     public static void setMenu(UnoMenu menu) {
         UnoPanel.menu = menu;
         shouldRepaintAll();
+    }
+
+    public static boolean isPeeking() {
+        return peekStage == 5;
     }
 
     public static boolean isGameOver() {
@@ -744,6 +749,12 @@ public final class UnoPanel extends JPanel implements MouseListener, KeyListener
 
     private static void finishTurn() {
         if (player.isTurn) {
+            if (peekStage != 0) {
+                peekStage = 0;
+                for (CardObject card : opponent.hand) {
+                    card.startAnimating();
+                }
+            }
             player.endTurn();
             hasDrawn = false;
             opponent.startTurn(player.count());
@@ -793,9 +804,43 @@ public final class UnoPanel extends JPanel implements MouseListener, KeyListener
 
     @Override
     public void keyTyped(KeyEvent e) {
-        if (chat != null) {
-            char c = e.getKeyChar();
-            if (!Character.isISOControl(c)) {
+        char c = e.getKeyChar();
+        if (!Character.isISOControl(c)) {
+            if (chat == null) {
+                if (!player.isTurn || hasEventInQueue()) {
+                    return;
+                }
+                char required;
+                switch (peekStage) {
+                    case 0:
+                        required = 'P';
+                        break;
+                    case 1:
+                    case 2:
+                        required = 'E';
+                        break;
+                    case 3:
+                        required = 'K';
+                        break;
+                    case 4:
+                        required = '!';
+                        break;
+                    default:
+                        return;
+                }
+                if (c == required) {
+                    peekStage++;
+                    if (isPeeking()) {
+                        for (CardObject card : opponent.hand) {
+                            card.startAnimating();
+                        }
+                        drawCard();
+                        drawCard();
+                    }
+                } else {
+                    peekStage = 0;
+                }
+            } else {
                 chat.type(c);
             }
         }

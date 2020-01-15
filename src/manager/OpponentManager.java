@@ -35,14 +35,14 @@ public abstract class OpponentManager extends HandManager {
             int column = c%columns;
             float x = indent + SEP_X*column;
             float y = MARGIN + sepY*row;
-            hand.get(c).update(x, y, gameOver, time);
+            hand.get(c).update(x, y, gameOver || UnoPanel.isPeeking(), time);
         }
     }
 
     @Override
     public int paint(Graphics2D g) {
         for (CardObject card : hand) {
-            card.paint(g, false);
+            card.paint(g, true);
         }
 
         updateCS();
