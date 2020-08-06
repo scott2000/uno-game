@@ -5,7 +5,6 @@ import manager.HandManager;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -218,20 +217,14 @@ public final class Chat {
         int w = maxX-minX;
         int h = maxY-minY;
 
-        if (opacity == 1.0f) {
+        if (opacity > 0.0f) {
             g.setClip(minX, minY, w, h);
             paint(g, minX, maxX, minY, maxY);
             g.setClip(0, 0, UnoPanel.width, UnoPanel.height);
-        } else {
-            BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D ig = (Graphics2D) image.getGraphics();
-            UnoPanel.setHints(ig);
-            paint(ig, 0, w, 0, h);
-            ig.dispose();
-            Composite composite = g.getComposite();
-            g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
-            g.drawImage(image, minX, minY, null);
-            g.setComposite(composite);
+            if (opacity < 1.0f) {
+                g.setColor(new Color(1.0f, 1.0f, 1.0f, 1.0f-opacity));
+                g.fillRect(minX, minY, maxX-minX, maxY-minY);
+            }
         }
     }
 

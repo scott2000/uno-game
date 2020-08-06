@@ -50,9 +50,9 @@ public abstract class WebManager extends OpponentManager {
 
             synchronized String take(String kind) {
                 if (received) return message;
-                for (int attempts = 1; attempts < 8; attempts++) {
+                for (int attempts = 1; attempts < 5; attempts++) {
                     try {
-                        wait(attempts*2_000);
+                        wait(attempts*1_500);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -88,11 +88,9 @@ public abstract class WebManager extends OpponentManager {
         }
     }
 
-    private MessageHandler handlerFor(String kind, boolean optional) {
+    private synchronized MessageHandler handlerFor(String kind, boolean optional) {
         MessageHandler handler;
-        synchronized (this){
-            handler = handlers.get(kind);
-        }
+        handler = handlers.get(kind);
         if (handler == null) {
             // it wasn't declared, so it will never be read from and can be safely created and then discarded
             handler = new MessageHandler();
@@ -169,15 +167,23 @@ public abstract class WebManager extends OpponentManager {
     }
 
     private void sendDebug() {
-        ArrayList<String> queue;
         synchronized (this) {
-            queue = debugQueue;
+            ArrayList<String> queue = debugQueue;
             debugQueue = new ArrayList<>();
+            for (String line : queue) {
+                write(OPTIONAL+"debug", line);
+            }
+            write(OPTIONAL+"chat", "Waiting for debug info...");
+            debugQueue = queue;
         }
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException ignored) {}
         System.out.flush();
-        for (String line : queue) {
-            System.err.println(line);
-            write("?debug", line);
+        synchronized (this) {
+            for (String line : debugQueue) {
+                System.err.println(line);
+            }
         }
         System.err.flush();
     }
@@ -311,6 +317,9 @@ public abstract class WebManager extends OpponentManager {
     }
 
     private void error(String msg) {
+        synchronized (this) {
+            debugQueue.add("[!] " + msg);
+        }
         System.out.flush();
         System.err.println("! "+msg);
         System.err.flush();
@@ -343,9 +352,7 @@ public abstract class WebManager extends OpponentManager {
 
     private void write(String text) {
         synchronized (this) {
-            synchronized (this) {
-                debugQueue.add("[+] "+text);
-            }
+            debugQueue.add("[+] "+text);
             if (output != null) {
                 output.println(text);
                 if (!output.checkError() && !socket.isClosed()) return;
